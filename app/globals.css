@@ -1,26 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0c60f0;
+  --primary: #F8FDFC;
+  --secondary: #698AF7;
+  --border: #2886FF;
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-border: var(--border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Container maxes out at max-w-xl (576px), so the "sm" design should
+     take over right at 576px instead of Tailwind's default 640px -
+     otherwise there's a dead zone where the container is already
+     capped but the compact mobile sizing is still showing. */
+  --breakpoint-sm: 36rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #005DF2;
+    --primary: #F8FDFC;
+    --secondary: #468EE9;
+    --border: #2886FF;
+
   }
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--primary);
+  border-color: var(--border);
+  font-family: var(--font-sans);
 }
