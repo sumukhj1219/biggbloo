@@ -37,7 +37,7 @@ const Navbar = () => {
           >
             <Link
               href={item.url}
-              className={`font-bold lowercase tracking-tight  text-sm sm:text-base transition-colors duration-200 ${
+              className={`font-bold lowercase tracking-tight  text-sm sm:text-xl transition-colors duration-200 ${
                 isActive ? "text-primary" : "text-secondary hover:text-primary"
               }`}
             >
