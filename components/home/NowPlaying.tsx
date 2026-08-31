@@ -147,10 +147,10 @@ const NowPlaying = () => {
       <div className="absolute aspect-square w-[calc(90%-5px)] sm:w-58  sm:h-42 rounded-xl sm:rounded-2xl p-2 -z-10 bg-linear-to-b from-[#3a56f7] via-[#2C4BFD] to-[#232FFF] blur-xs" />
 
       <div className="flex flex-col absolute -z-5 items-center justify-center inset-0 mx-auto">
-        <span className="text-6xl sm:text-7xl text-secondary">
+        <span className="text-5xl sm:text-7xl text-secondary">
           NOW
         </span>
-        <span className="text-3xl sm:text-4xl italic text-secondary">
+        <span className="text-2xl sm:text-4xl italic text-secondary">
           PLAYING
         </span>
       </div>
@@ -179,14 +179,14 @@ const NowPlaying = () => {
 
       <div className="absolute bottom-0 inset-x-0 flex flex-col items-center gap-0.5 px-6 z-10">
         <span
-          className="text-center text-[14px] sm:text-sm font-bold text-primary truncate max-w-full"
+          className="text-center text-[11px] sm:text-sm font-bold text-primary truncate max-w-full"
           title={title}
         >
           {truncateLabel(title)}
         </span>
         {artist && (
           <span
-            className="text-center text-[12px] sm:text-xs text-secondary/80 truncate max-w-full"
+            className="text-center text-[9px] sm:text-xs text-secondary/80 truncate max-w-full"
             title={artist}
           >
             {truncateLabel(artist)}
