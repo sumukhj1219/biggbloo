@@ -35,7 +35,7 @@ const ClockFace = () => {
       </span>
 
       <span
-        className={`${antonio.className} whitespace-nowrap text-6xl leading-none tracking-tighter text-[#E9D927] sm:text-7xl`}
+        className={`${antonio.className} whitespace-nowrap text-7xl leading-none tracking-tighter text-[#E9D927] sm:text-7xl`}
       >
         {hours}:<span className="text-primary/50">{minutes}</span>
       </span>

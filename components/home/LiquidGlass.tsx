@@ -2,14 +2,10 @@
 
 import React, { useEffect, useRef } from "react";
 import { LiquidGlass as LiquidGlassEngine } from "@ybouane/liquidglass";
-import { useMobile } from "@/hooks/useMobile";
-import { useFluidScale } from "@/hooks/useFluidScale";
 
 const LiquidGlass = () => {
   const rootRef = useRef<HTMLDivElement>(null);
   const glassRef = useRef<HTMLDivElement>(null);
-  const isCompact = useMobile();
-  const scale = useFluidScale(410, 576, 1, 176 / 150);
 
   useEffect(() => {
     if (!rootRef.current || !glassRef.current) return;
@@ -43,24 +39,12 @@ const LiquidGlass = () => {
     return () => {
       instance?.destroy();
     };
-  }, [isCompact]);
+  }, []);
 
   return (
     <div
       ref={rootRef}
-      style={
-        isCompact
-          ? undefined
-          : {
-              transform: `scale(${scale})`,
-              transformOrigin: "top left",
-              marginRight: 150 * (scale - 1),
-              marginBottom: 150 * (scale - 1),
-            }
-      }
-      className={`relative overflow-visible sm:size-44 ${
-        isCompact ? "aspect-square w-[calc(50%-10px)]" : "size-[150px]"
-      }`}
+      className="relative overflow-visible aspect-square w-[calc(50%-10px)] sm:aspect-auto sm:size-44"
     >
       <video
         src="/app/video.mp4"
@@ -73,18 +57,7 @@ const LiquidGlass = () => {
 
       <div
         ref={glassRef}
-        className={`
-          absolute
-          left-1/2
-          top-1/2
-          -translate-x-1/2
-          -translate-y-1/2
-          rounded-2xl
-          sm:h-44
-          sm:w-44
-          sm:rounded-3xl
-          ${isCompact ? "h-full w-full" : "h-[150px] w-[150px]"}
-        `}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl h-full w-full sm:h-44 sm:w-44 sm:rounded-3xl"
       >
       </div>
     </div>

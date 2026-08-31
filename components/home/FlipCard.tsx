@@ -1,7 +1,5 @@
 "use client";
 
-import { useMobile } from "@/hooks/useMobile";
-import { useFluidScale } from "@/hooks/useFluidScale";
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { timePages } from "./time-pages";
@@ -15,8 +13,6 @@ const TEAR_TRANSITION = { duration: 0.55, ease: [0.36, 0, 0.66, -0.56] as const 
 
 const FlipCard = () => {
   const [pageIndex, setPageIndex] = useState(0);
-  const isCompact = useMobile();
-  const scale = useFluidScale(410, 576, 1, 176 / 150);
 
   const goToNextPage = () => {
     setPageIndex((prev) => (prev + 1) % timePages.length);
@@ -33,19 +29,7 @@ const FlipCard = () => {
 
   return (
     <div
-      style={
-        isCompact
-          ? undefined
-          : {
-              transform: `scale(${scale})`,
-              transformOrigin: "top left",
-              marginRight: 150 * (scale - 1),
-              marginBottom: 150 * (scale - 1),
-            }
-      }
-      className={`relative overflow-hidden rounded-3xl bg-[#FE01D8] cursor-grabbing p-1 ring-4 ring-pink-400/90 sm:size-44 sm:rounded-3xl sm:p-1.5 sm:ring-8 ${
-        isCompact ? "aspect-square w-[calc(50%-10px)]" : "size-[150px]"
-      }`}
+      className="relative overflow-hidden rounded-3xl bg-[#FE01D8] cursor-grabbing p-1 ring-4 ring-pink-400/90 aspect-square w-[calc(50%-10px)] sm:aspect-auto sm:size-44 sm:rounded-3xl sm:p-1.5 sm:ring-8"
       onClick={goToNextPage}
     >
       <AnimatePresence>

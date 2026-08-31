@@ -5,7 +5,7 @@ const Life = () => {
   return (
     <div className="flex h-full w-full items-center p-2">
       <div
-        className={`${antonio.className} flex flex-col items-center whitespace-nowrap text-lg font-extrabold smallercase leading-none text-[#E9D927] sm:text-xl`}
+        className={`${antonio.className} flex flex-col items-center whitespace-nowrap text-xl font-extrabold smallercase leading-none text-[#E9D927] sm:text-xl`}
       >
         <span>
           <span className="text-primary/50">gym</span> <span className="sm:text-2xl text-lg">7am</span>,

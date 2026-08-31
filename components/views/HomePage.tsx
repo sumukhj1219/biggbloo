@@ -45,7 +45,7 @@ const HomePage = () => {
       variants={pageContainer}
       initial="hidden"
       animate="show"
-      className="max-w-xl w-full sm:h-[60vh] md:h-[95vh] sm:mt-0 mt-16 flex flex-col justify-center gap-1 mx-auto px-4 sm:px-0 text-sm sm:text-xl font-bold tracking-tight"
+      className="max-w-xl w-full sm:h-[calc(60vh-4rem)] md:h-[calc(95vh-4rem)] mt-16 flex flex-col justify-center gap-1 mx-auto px-4 sm:px-0 text-sm sm:text-xl font-bold tracking-tight"
     >
       <motion.div variants={pageItem}>
         <span className="text-secondary">yo, </span>
@@ -88,7 +88,13 @@ const HomePage = () => {
         peelBackActivePct={40}
         shadowIntensity={0.25}
         lightingIntensity={0.01}
-        initialPosition={isMobileLayout ? { x: 300, y: -350 } : { x: 480, y: -350 }}
+        initialPosition={
+          isCompact
+            ? { x: 220, y: -400 }
+            : isMobileLayout
+              ? { x: 300, y: -350 }
+              : { x: 480, y: -350 }
+        }
         peelDirection={0}
         draggable={false}
         className="z-30"
@@ -105,9 +111,7 @@ const HomePage = () => {
 
       <motion.div
         variants={pageItem}
-        className={`my-3 flex flex-wrap items-center sm:gap-x-10 gap-y-4 sm:flex-nowrap ${
-          isCompact ? "gap-x-5" : "gap-x-5"
-        }`}
+        className="my-3 flex flex-wrap items-center justify-between sm:justify-start gap-y-4 sm:gap-x-10 sm:flex-nowrap"
       >
         <div className="flex w-full shrink-0 flex-col sm:w-32">
           <span className="text-primary">reach out :)</span>

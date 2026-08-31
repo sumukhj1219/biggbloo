@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { NowPlayingTrack } from "@/lib/lastfm";
-import { useFluidScale } from "@/hooks/useFluidScale";
 
 const POLL_INTERVAL_MS = 30_000;
 const MAX_LABEL_LENGTH = 15;
@@ -111,7 +110,6 @@ const NowPlaying = () => {
   const [track, setTrack] = useState<NowPlayingTrack | null>(null);
   const [loading, setLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
-  const scale = useFluidScale(390, 576, 1, 1.5);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,69 +139,62 @@ const NowPlaying = () => {
     track?.artist ?? (loading ? "" : "Connecting..");
 
   return (
-    <div className="my-4">
-      <div
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        style={{
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
-          marginBottom: 150 * (scale - 1),
-        }}
-        className="w-[150px] h-[150px] sm:w-64 relative sm:h-48 rounded-3xl sm:rounded-3xl drop-shadow-lg sm:drop-shadow-xl drop-shadow-sky-700 shadow ring-4 sm:ring-6 ring-[#4390FE] inset-shadow-xs inset-shadow-[#232FFF] p-3 text-primary bg-[#232FFF] overflow-hidden"
-      >
-        <div className="absolute w-[128px] sm:w-58 h-[150px] sm:h-42 rounded-xl sm:rounded-2xl p-2 -z-10 bg-linear-to-b from-[#3a56f7] via-[#2C4BFD] to-[#232FFF] blur-xs" />
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="my-4 aspect-square w-[calc(50%-10px)] sm:aspect-auto sm:w-64 relative sm:h-48 rounded-3xl sm:rounded-3xl drop-shadow-lg sm:drop-shadow-xl drop-shadow-sky-700 shadow ring-4 sm:ring-6 ring-[#4390FE] inset-shadow-xs inset-shadow-[#232FFF] p-3 text-primary bg-[#232FFF] overflow-hidden"
+    >
+      <div className="absolute aspect-square w-[calc(90%-5px)] sm:w-58  sm:h-42 rounded-xl sm:rounded-2xl p-2 -z-10 bg-linear-to-b from-[#3a56f7] via-[#2C4BFD] to-[#232FFF] blur-xs" />
 
-        <div className="flex flex-col absolute -z-5 items-center justify-center inset-0 mx-auto">
-          <span className="text-5xl sm:text-7xl text-secondary">
-            NOW
-          </span>
-          <span className="text-2xl sm:text-4xl italic text-secondary">
-            PLAYING
-          </span>
-        </div>
-
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={track?.albumImageUrl ?? "fallback"}
-            layout
-            src={track?.albumImageUrl ?? "/app/pepas.jpg"}
-            alt={track ? `${title} album art` : "Album art"}
-            className={
-              "absolute rounded-lg shadow-lg ring-1 ring-white/20 object-cover z-10 " +
-              (isHovered
-                ? "top-11 left-1/2 -translate-x-1/2 size-16 sm:size-32"
-                : "bottom-3 left-3 size-4 sm:size-8")
-            }
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              opacity: { duration: 0.25 },
-              layout: { type: "spring", stiffness: 300, damping: 28 },
-            }}
-          />
-        </AnimatePresence>
-
-        <div className="absolute bottom-0 inset-x-0 flex flex-col items-center gap-0.5 px-6 z-10">
-          <span
-            className="text-center text-[10px] sm:text-sm font-bold text-primary truncate max-w-full"
-            title={title}
-          >
-            {truncateLabel(title)}
-          </span>
-          {artist && (
-            <span
-              className="text-center text-[8px] sm:text-xs text-secondary/80 truncate max-w-full"
-              title={artist}
-            >
-              {truncateLabel(artist)}
-            </span>
-          )}
-        </div>
-
-        <PlayPauseButton key={track?.previewUrl ?? "none"} previewUrl={track?.previewUrl ?? null} />
+      <div className="flex flex-col absolute -z-5 items-center justify-center inset-0 mx-auto">
+        <span className="text-6xl sm:text-7xl text-secondary">
+          NOW
+        </span>
+        <span className="text-3xl sm:text-4xl italic text-secondary">
+          PLAYING
+        </span>
       </div>
+
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={track?.albumImageUrl ?? "fallback"}
+          layout
+          src={track?.albumImageUrl ?? "/app/pepas.jpg"}
+          alt={track ? `${title} album art` : "Album art"}
+          className={
+            "absolute rounded-lg shadow-lg ring-1 ring-white/20 object-cover z-10 " +
+            (isHovered
+              ? "top-11 left-1/2 -translate-x-1/2 size-24 sm:size-32"
+              : "bottom-3 left-3 size-4 sm:size-8")
+          }
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{
+            opacity: { duration: 0.25 },
+            layout: { type: "spring", stiffness: 300, damping: 28 },
+          }}
+        />
+      </AnimatePresence>
+
+      <div className="absolute bottom-0 inset-x-0 flex flex-col items-center gap-0.5 px-6 z-10">
+        <span
+          className="text-center text-[14px] sm:text-sm font-bold text-primary truncate max-w-full"
+          title={title}
+        >
+          {truncateLabel(title)}
+        </span>
+        {artist && (
+          <span
+            className="text-center text-[12px] sm:text-xs text-secondary/80 truncate max-w-full"
+            title={artist}
+          >
+            {truncateLabel(artist)}
+          </span>
+        )}
+      </div>
+
+      <PlayPauseButton key={track?.previewUrl ?? "none"} previewUrl={track?.previewUrl ?? null} />
     </div>
   );
 };
