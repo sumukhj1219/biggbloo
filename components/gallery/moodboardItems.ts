@@ -4,7 +4,6 @@ export interface MoodboardItem {
   src: string;
   alt: string;
   caption?: string;
-  // width / height - drives the card's rendered size in the masonry layout.
   ratio: number;
 }
 
@@ -12,7 +11,6 @@ export const moodboardItems: MoodboardItem[] = [
   { id: "1", type: "video", src: "/app/claudesprites.mp4", alt: "claudesprites demo", ratio: 1.778 },
   { id: "2", type: "video", src: "/app/video.mp4", alt: "liquid glass demo", ratio: 1 },
 
-  // From @biggbloo on X - three.js / gamedev clips.
   { id: "3", type: "video", src: "/moodboard/summerjam-homescreen.mp4", alt: "summerjam home screen", ratio: 1.733 },
   { id: "4", type: "video", src: "/moodboard/sprite-dino.mp4", alt: "sprite dino", ratio: 1.521 },
   { id: "5", type: "video", src: "/moodboard/onepiece-grass.mp4", alt: "one piece three.js grass experiment", ratio: 1.959 },

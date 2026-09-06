@@ -8,8 +8,6 @@ import {
   useTransform,
 } from "motion/react";
 
-// Padding kept between the iris edge and the sclera edge so the iris
-// never crosses over the white circle.
 const IRIS_PADDING = 3;
 
 const Eye = ({
@@ -32,9 +30,6 @@ const Eye = ({
 
   const maxTravel = (size - pupilSize) / 2 - IRIS_PADDING;
 
-  // The eyebrow rises a touch when the eye looks up and settles when it
-  // looks down — a subtle life-like follow of the gaze — layered with
-  // an independent occasional "raise" twitch for a curious/goofy beat.
   const browGazeY = useTransform(springY, [-maxTravel, maxTravel], [-3, 2]);
   const browRaise = useMotionValue(0);
   const browRaiseSpring = useSpring(browRaise, { stiffness: 260, damping: 16 });
@@ -43,8 +38,6 @@ const Eye = ({
     ([gaze, raise]: number[]) => gaze + raise
   );
 
-  // Track the cursor on devices that have one; on touch devices (no
-  // fine pointer) there is no cursor, so the eyes wander on their own.
   useEffect(() => {
     const hasCursor = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
@@ -82,7 +75,6 @@ const Eye = ({
     return () => clearTimeout(timeoutId);
   }, [x, y, maxTravel]);
 
-  // Random blinking.
   useEffect(() => {
     let openTimeoutId: ReturnType<typeof setTimeout>;
     let closeTimeoutId: ReturnType<typeof setTimeout>;
@@ -104,8 +96,6 @@ const Eye = ({
     };
   }, []);
 
-  // Random eyebrow raises, independent of blinking, for a curious /
-  // goofy twitch every few seconds.
   useEffect(() => {
     let openId: ReturnType<typeof setTimeout>;
     let closeId: ReturnType<typeof setTimeout>;

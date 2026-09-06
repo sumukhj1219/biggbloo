@@ -1,10 +1,5 @@
 import type { Variants } from "motion/react";
 
-/**
- * Shared page-landing animation. Wrap a page's root in `pageContainer`
- * (initial="hidden" animate="show") and each direct section in
- * `pageItem` to get a consistent staggered fade-up entrance across pages.
- */
 export const pageContainer: Variants = {
   hidden: {},
   show: {
@@ -24,11 +19,6 @@ export const pageItem: Variants = {
   },
 };
 
-/**
- * Same timing as `pageItem`, but opacity-only. Use this on an element whose
- * `transform` is already driven by something else (e.g. GSAP), since
- * animating `y` here would fight over the `transform` property.
- */
 export const pageItemFade: Variants = {
   hidden: { opacity: 0 },
   show: {

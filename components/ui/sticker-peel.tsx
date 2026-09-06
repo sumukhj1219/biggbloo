@@ -19,11 +19,6 @@ interface StickerPeelProps {
   peelDirection?: number;
   className?: string;
   draggable?: boolean;
-  /**
-   * Optional Framer Motion variants for the root element (e.g. an
-   * opacity-only entrance). GSAP owns `transform` on this element for
-   * dragging/positioning, so variants here should avoid animating it.
-   */
   variants?: Variants;
 }
 

@@ -8,12 +8,6 @@ interface SmoothScrollAreaProps {
   className?: string;
 }
 
-/**
- * Wheel/trackpad/touch-driven, spring-eased scroll for a region that sits
- * inside a fixed, non-scrolling page (this is what lets the gallery scroll
- * at all). Wheel input drives it on desktop; pointer drag (covers touch)
- * drives it everywhere else, so it works the same way on mobile.
- */
 const SmoothScrollArea = ({ children, className }: SmoothScrollAreaProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -22,14 +16,17 @@ const SmoothScrollArea = ({ children, className }: SmoothScrollAreaProps) => {
   const y = useTransform(smoothY, (v) => -v);
 
   useEffect(() => {
+    const unsubscribe = smoothY.on("change", (v) => {
+      window.dispatchEvent(new CustomEvent("app-scroll", { detail: v > 0 }));
+    });
+    return unsubscribe;
+  }, [smoothY]);
+
+  useEffect(() => {
     const viewport = viewportRef.current;
     const content = contentRef.current;
     if (!viewport || !content) return;
 
-    // content.offsetTop accounts for any leading offset before it (e.g. a
-    // padding-top on `viewport`, used elsewhere to let content slide up
-    // under a fixed navbar) - without it, maxScroll comes up short by
-    // exactly that offset and the last row never becomes reachable.
     const maxScroll = () =>
       Math.max(0, content.offsetTop + content.scrollHeight - viewport.clientHeight);
 

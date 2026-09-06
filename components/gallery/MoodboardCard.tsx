@@ -9,11 +9,6 @@ interface MoodboardCardProps {
   item: MoodboardItem;
 }
 
-// Cards' videos only play while actually near the viewport, and pause once
-// scrolled away. With this many cards, letting every video autoplay at once
-// blows past the browser's own concurrent-autoplay cap and most just end up
-// silently stuck paused - this keeps the count of simultaneously playing
-// videos low regardless of how many cards exist.
 function usePlayWhenVisible(ref: React.RefObject<HTMLVideoElement | null>) {
   useEffect(() => {
     const el = ref.current;

@@ -25,8 +25,6 @@ export function RansomHeading({
 
   const placed = useMemo(() => composeLine(text.toUpperCase(), hashSeed(text)), [text]);
 
-  // Target a letter height proportional to the available width, then shrink
-  // it further if the composed line would still overflow that width.
   const lineH = useMemo(() => {
     const target = Math.max(28, Math.min(88, Math.round(avail * 0.06)));
     const room = avail * 0.96;

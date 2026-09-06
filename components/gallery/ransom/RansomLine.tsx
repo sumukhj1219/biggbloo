@@ -52,9 +52,6 @@ export function RansomLine({
   );
 }
 
-// One cutout letter. Owns two things beyond rendering:
-//  • the entrance/exit slam (inner <img> transform, staggered per idx),
-//  • the click-to-reroll swap between paper scraps for the same letter.
 function Scrap({
   p,
   lineH,

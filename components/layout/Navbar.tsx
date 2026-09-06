@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 const items = [
   {
@@ -25,28 +25,50 @@ const items = [
 
 const Navbar = () => {
   const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 0);
+    const onAppScroll = (e: Event) => setScrolled((e as CustomEvent<boolean>).detail);
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("app-scroll", onAppScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("app-scroll", onAppScroll);
+    };
+  }, [pathname]);
 
   return (
     <nav className="z-50 w-full fixed inset-x-0 top-8 sm:top-16">
-      <div className="max-w-xl w-full mx-3 sm:mx-auto flex items-center gap-6 sm:gap-10">
-        {items.map((item) => {
-          const isActive = pathname === item.url;
+      <div className="relative max-w-xl w-full mx-3 sm:mx-auto">
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 -z-10 rounded-full backdrop-blur-md transition-opacity duration-300 ${
+            scrolled ? "opacity-100" : "opacity-0"
+          }`}
+        />
+        <div className="flex items-center justify-center h-10 sm:h-14 gap-6 sm:gap-10 px-6 sm:px-8">
+          {items.map((item) => {
+            const isActive = pathname === item.url;
 
-          return (
-            <div
-              key={item.url}
-            >
-              <Link
-                href={item.url}
-                className={`font-bold lowercase tracking-tight  text-sm sm:text-xl transition-colors duration-200 ${
-                  isActive ? "text-primary" : "text-secondary hover:text-primary"
-                }`}
+            return (
+              <div
+                key={item.url}
               >
-                {item.label}
-              </Link>
-            </div>
-          );
-        })}
+                <Link
+                  href={item.url}
+                  className={`font-bold lowercase tracking-tight  text-sm sm:text-xl transition-colors duration-200 ${
+                    isActive ? "text-primary" : "text-secondary hover:text-primary"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

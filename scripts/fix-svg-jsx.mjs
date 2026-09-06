@@ -1,10 +1,4 @@
 #!/usr/bin/env node
-// Fixes attributes from a pasted/exported SVG so it's valid JSX:
-//   - kebab-case presentation attributes -> camelCase
-//   - style="css:string" -> style={{ camelProp: "value" }}
-//
-// Usage: node scripts/fix-svg-jsx.mjs <file.tsx> [more files...]
-
 import { readFileSync, writeFileSync } from "node:fs";
 
 const ATTR_MAP = {

@@ -1,11 +1,11 @@
-import manifestJson from "../../../public/ransome-letters/manifest.json";
+import manifestJson from "../../../public/ransom-letters/manifest.json";
 
 export type Variant = { file: string; w: number; h: number };
 export type Manifest = Record<string, Variant[]>;
 
 export const RANSOM: Manifest = manifestJson as Manifest;
 
-export const RANSOM_BASE = "/ransome-letters/";
+export const RANSOM_BASE = "/ransom-letters/";
 export function spriteUrl(file: string): string {
   return `${RANSOM_BASE}${file}`;
 }

@@ -18,8 +18,6 @@ const FlipCard = () => {
     setPageIndex((prev) => (prev + 1) % timePages.length);
   };
 
-  // Auto-advance after a period of no interaction; any click (via
-  // goToNextPage) restarts this timer since pageIndex changes.
   useEffect(() => {
     const timeout = setTimeout(goToNextPage, AUTO_ADVANCE_MS);
     return () => clearTimeout(timeout);
