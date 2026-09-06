@@ -164,7 +164,7 @@ const NowPlaying = () => {
           className={
             "absolute rounded-lg shadow-lg ring-1 ring-white/20 object-cover z-10 " +
             (isHovered
-              ? "top-11 left-1/2 -translate-x-1/2 size-24 sm:size-32"
+              ? "top-5 left-1/2 -translate-x-1/2 size-24 sm:size-32"
               : "bottom-3 left-3 size-4 sm:size-8")
           }
           initial={{ opacity: 0 }}

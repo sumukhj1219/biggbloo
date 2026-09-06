@@ -41,7 +41,7 @@ const Navbar = () => {
   }, [pathname]);
 
   return (
-    <nav className="z-50 w-full fixed inset-x-0 top-8 sm:top-16">
+    <nav className="z-50 w-full mx-auto fixed flex items-center justify-center top-8 sm:top-16">
       <div className="relative max-w-xl w-full mx-3 sm:mx-auto">
         <div
           aria-hidden
@@ -59,7 +59,7 @@ const Navbar = () => {
               >
                 <Link
                   href={item.url}
-                  className={`font-bold lowercase tracking-tight  text-sm sm:text-xl transition-colors duration-200 ${
+                  className={`font-bold lowercase tracking-tight leading-none text-sm sm:text-xl transition-colors duration-200 ${
                     isActive ? "text-primary" : "text-secondary hover:text-primary"
                   }`}
                 >

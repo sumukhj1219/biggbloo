@@ -9,7 +9,7 @@ import Stack from "../home/Stack";
 import Contact from "../home/Contact";
 import FlipCard from "../home/FlipCard";
 import LiquidGlass from "../home/LiquidGlass";
-import Projects from "../home/Projects";
+import FootballScore from "../home/FootballScore";
 import { useMobile } from "@/hooks/useMobile";
 import { pageContainer, pageItem, pageItemFade } from "@/lib/motion";
 import StickerPeel from "@/components/ui/sticker-peel";
@@ -116,7 +116,7 @@ const HomePage = () => {
       </motion.div>
 
       <motion.div variants={pageItem} className="sm:mx-3">
-        <Projects />
+        <FootballScore />
       </motion.div>
     </MotionContainer>
   );
