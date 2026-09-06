@@ -22,9 +22,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased overflow-x-hidden`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased overflow-x-hidden md:overflow-y-hidden`}
     >
-      <body className="min-h-full flex flex-col  md:mt-16 mt-8 overflow-y-auto overflow-x-hidden sm:overflow-hidden">
+      <body className="min-h-full flex flex-col py-8 sm:py-16 overflow-x-hidden">
         <Navbar />
         {children}
       </body>

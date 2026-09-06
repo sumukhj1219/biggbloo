@@ -28,8 +28,6 @@ const MotionContainer = motion.create(Container);
 const HomePage = () => {
   const [index, setIndex] = useState(0);
   const isCompact = useMobile();
-  // Matches the `sm:` Tailwind breakpoint the rest of this layout switches
-  // on, so the sticker's position stays in sync with how everything else reflows.
   const isMobileLayout = useMobile(640);
 
   useEffect(() => {
@@ -45,16 +43,16 @@ const HomePage = () => {
       variants={pageContainer}
       initial="hidden"
       animate="show"
-      className="max-w-xl w-full sm:h-[calc(60vh-4rem)] md:h-[calc(95vh-4rem)] mt-16 flex flex-col justify-center gap-1 mx-auto px-4 sm:px-0 text-sm sm:text-xl font-bold tracking-tight"
+      className="max-w-xl w-full sm:h-[calc(60vh-4rem)] md:h-[calc(95vh-4rem)] mt-16 flex flex-col justify-center gap-1 mx-auto px-4 sm:px-0 text-xs sm:text-lg font-bold tracking-tight"
     >
       <motion.div variants={pageItem}>
-        <span className="text-secondary">yo, </span>
-        <span className="text-primary">it&apos;s sumukh </span>
+        <span className="text-secondary text-sm sm:text-xl">yo, </span>
+        <span className="text-black bg-white  rounded-lg px-2 py-0 inline-block">it&apos;s sumukh </span>
       </motion.div>
 
       <motion.div variants={pageItem}>
-        <span className="text-secondary">I spend most of my time on - </span>
-        <span className="text-primary inline-block relative overflow-hidden align-bottom lowercase">
+        <span className="text-secondary text-sm sm:text-xl">I spend most of my time on - </span>
+        <span className="text-black bg-white rounded-lg px-2 py-0 inline-block relative overflow-hidden align-bottom lowercase">
           <AnimatePresence mode="wait">
             <motion.span
               key={words[index]}
@@ -71,13 +69,9 @@ const HomePage = () => {
       </motion.div>
 
       <motion.div variants={pageItem}>
-        <span className="text-primary flex items-center gap-2">
+        <span className="text-black bg-white rounded-lg px-2 py-0 flex items-center gap-2 w-fit">
           bengaluru, india <India />
         </span>
-      </motion.div>
-
-      <motion.div variants={pageItem} className=" flex items-center gap-2">
-        <span className="text-secondary">click me</span>
       </motion.div>
 
       <StickerPeel
@@ -114,7 +108,7 @@ const HomePage = () => {
         className="my-3 flex flex-wrap items-center justify-between sm:justify-start gap-y-4 sm:gap-x-10 sm:flex-nowrap"
       >
         <div className="flex w-full shrink-0 flex-col sm:w-32">
-          <span className="text-primary">reach out :)</span>
+          <span className="text-black bg-white rounded-lg px-2 py-0 w-fit">reach out :)</span>
           <Contact />
         </div>
         <FlipCard />
