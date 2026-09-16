@@ -11,6 +11,8 @@ interface FootballDataMatch {
   id: number;
   utcDate: string;
   status: "SCHEDULED" | "TIMED" | "IN_PLAY" | "PAUSED" | "FINISHED" | "SUSPENDED" | "POSTPONED" | "CANCELLED" | "AWARDED";
+  minute: number | null;
+  injuryTime: number | null;
   stage: string;
   matchday: number | null;
   homeTeam: FootballDataTeam;
@@ -26,6 +28,8 @@ export interface FeaturedMatch {
   isLive: boolean;
   status: FootballDataMatch["status"];
   utcDate: string;
+  minute: number | null;
+  injuryTime: number | null;
   competition: string;
   stage: string;
   homeTeam: { name: string; shortName: string; tla: string; crest: string | null };
@@ -39,6 +43,8 @@ const toFeaturedMatch = (match: FootballDataMatch): FeaturedMatch => ({
   isLive: match.status === "IN_PLAY" || match.status === "PAUSED",
   status: match.status,
   utcDate: match.utcDate,
+  minute: match.minute,
+  injuryTime: match.injuryTime,
   competition: match.competition.name,
   stage: match.stage.replaceAll("_", " "),
   homeTeam: {
