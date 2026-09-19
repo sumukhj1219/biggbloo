@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "motion/react";
 import Container from "../layout/Container";
 import NowPlaying from "../home/NowPlaying";
 import India from "../svgs/India";
-import Stack from "../home/Stack";
 import Contact from "../home/Contact";
 import FlipCard from "../home/FlipCard";
 import LiquidGlass from "../home/LiquidGlass";
@@ -100,7 +99,9 @@ const HomePage = () => {
         className="flex items-center justify-between "
       >
         <NowPlaying />
-        <Stack />
+        <div className="my-4 relative overflow-hidden rounded-3xl aspect-square w-[calc(50%-10px)] sm:aspect-auto sm:w-64 sm:h-48">
+          <img className="absolute inset-0 size-full object-cover" src="/app/sit.jpeg" alt="sit" />
+        </div>
       </motion.div>
 
       <motion.div

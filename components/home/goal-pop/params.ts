@@ -174,9 +174,9 @@ export function markAt(i: number, t: number): { spread: number; len: number; alp
   return { spread: MARK.gap + MARK.spread * easeFlick(u), len: MARK.len + (MARK.minLen - MARK.len) * u, alpha: 1 - u };
 }
 
-export const POP_MS = 2000;
+export const POP_MS = 3400;
 
-export const SWELL_START_MS = 1400;
+export const SWELL_START_MS = 2500;
 export const SWELL_END_MS = POP_MS - FRAME_MS;
 
 export const SWELL_PEAK = 0.34;

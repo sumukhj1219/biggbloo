@@ -61,17 +61,6 @@ const GoalCelebration = ({ goal }: { goal: GoalInfo }) => {
         className="relative flex h-full w-full items-center justify-center overflow-visible rounded-full"
         style={{ backgroundColor: DARK }}
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.6 }}
-          transition={{ delay: 0.15, duration: 0.4, ease: "easeOut" }}
-          className={`absolute top-1/2 z-20 h-[132px] w-[132px] -translate-y-1/2 ${
-            goal.side === "home" ? "left-2" : "right-2"
-          }`}
-        >
-          <Crest team={goal.team} className="h-full w-full" />
-        </motion.div>
 
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
           <GoalPopCanvas />

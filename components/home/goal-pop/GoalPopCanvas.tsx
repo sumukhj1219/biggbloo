@@ -6,11 +6,11 @@ import { GoalPop } from "./engine";
 import { SCENE_H, SCENE_W } from "./params";
 import { SwingReveal } from "./swing";
 
-const PHASE1_END_MS = 2200;
-const PHASE2_DURATION_MS = 1000;
+const PHASE1_END_MS = 3600;
+const PHASE2_DURATION_MS = 1400;
 export const PHASE2_END_MS = PHASE1_END_MS + PHASE2_DURATION_MS;
 
-const DATAMOSH_DURATION_MS = 1000;
+const DATAMOSH_DURATION_MS = 1200;
 
 // The full-width datamosh exit overlay (DatamoshOverlay.tsx) runs from
 // PHASE2_END_MS for DATAMOSH_DURATION_MS, mounted separately by GoalCelebration
