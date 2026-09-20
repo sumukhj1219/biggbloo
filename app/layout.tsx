@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
+import Navbar from "@/components/common/Navbar";
+import Reveal from "@/components/common/Reveal";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -22,7 +19,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
     >
       <head>
         <script
@@ -31,7 +28,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body className="min-h-full max-w-2xl w-full mx-auto flex flex-col px-4 py-8 sm:px-6 sm:py-16">{children}</body>
+      <body className="min-h-full max-w-2xl w-full mx-auto flex flex-col px-4 py-8 sm:px-6 sm:py-16"><Reveal>
+          <Navbar />
+        </Reveal>
+        {children}
+      </body>
     </html>
   );
 }

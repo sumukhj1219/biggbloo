@@ -5,11 +5,13 @@ import Container from '@/components/common/Container'
 const works = [
   {
     title: "Webknot",
-    place: "Bengaluru, India (OnSite)"
+    place: "Bengaluru, India (OnSite)",
+    current: true
   },
   {
     title: "Lno Mortgages",
-    place: "Sydney, Australia (Remote)"
+    place: "Sydney, Australia (Remote)",
+    current: false
   },
 ]
 
@@ -23,7 +25,16 @@ const Work = () => {
             key={work.title}
             className='flex items-baseline justify-between gap-x-4'
           >
-            <span className='text-sm'>{work.title}</span>
+            <span className='flex items-center gap-x-2 text-xs sm:text-sm text-muted-foreground'>
+              {work.title}
+              {work.current && (
+                <span
+                  role='img'
+                  aria-label='Current'
+                  className='size-1.5 rounded-full bg-green-500'
+                />
+              )}
+            </span>
             <span className='text-xs sm:text-sm text-muted-foreground text-right'>
               {work.place}
             </span>

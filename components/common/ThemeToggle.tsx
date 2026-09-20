@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import DarkLight from "@/icons/DarkLight";
+import LightBulb from "@/icons/LightBulb";
 
 const ThemeToggle = () => {
   const toggle = () => {
@@ -16,9 +16,9 @@ const ThemeToggle = () => {
       type="button"
       onClick={toggle}
       aria-label="Toggle dark mode"
-      className="ml-auto rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer"
+      className="ml-auto rounded-md text-muted-foreground transition-colors  hover:text-accent-foreground cursor-pointer"
     >
-      <DarkLight width={16} height={16} />
+      <LightBulb width={16} height={16} />
     </button>
   );
 };

@@ -1,0 +1,48 @@
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import ThemeToggle from "./ThemeToggle";
+
+const links = [
+  { label: "Home", href: "/" },
+  { label: "Work", href: "/work" },
+  { label: "Gallery", href: "/gallery" },
+  { label: "Projects", href: "/projects" },
+];
+
+const Navbar = () => {
+  const pathname = usePathname();
+
+  return (
+    <nav aria-label="Main" className="mb-8 sm:mb-10">
+      <div className="flex items-center justify-between">
+        <ul className="flex flex-wrap items-center  gap-x-5 gap-y-1 text-sm">
+          {links.map(({ label, href }) => {
+            const isActive =
+              href === "/" ? pathname === "/" : pathname.startsWith(href);
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "transition-colors hover:text-foreground",
+                    isActive ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        <ThemeToggle />
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;
