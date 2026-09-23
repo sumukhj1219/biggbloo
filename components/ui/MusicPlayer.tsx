@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { forwardRef, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { animate, motion, useMotionValue } from "motion/react";
 import type { NowPlayingTrack } from "@/lib/lastfm";
@@ -141,13 +141,13 @@ const Disc = ({ track }: { track: NowPlayingTrack | null }) => {
   );
 };
 
-const MusicPlayer = () => {
+const MusicPlayer = forwardRef<HTMLDivElement>((_props, ref) => {
   const { track, loaded } = useNowPlaying();
 
   return (
-    <div className="flex gap-x-3 items-center">
+    <div ref={ref} className="flex gap-x-3 items-center">
       <Disc key={`${track?.title}|${track?.artist}`} track={track} />
-      <div className="flex min-w-0 flex-col text-muted-foreground text-sm">
+      <div className="flex min-w-0 flex-col text-muted-foreground/60 text-sm ">
         <span>{track?.isPlaying ? "Now Playing" : "Last Played"}</span>
         {track ? (
           <span className="break-words">
@@ -165,6 +165,7 @@ const MusicPlayer = () => {
       </div>
     </div>
   );
-};
+});
+MusicPlayer.displayName = "MusicPlayer";
 
 export default MusicPlayer;

@@ -33,7 +33,7 @@ export function setFor(k: number): ColourSet {
   return PALETTE[((k % n) + n) % n];
 }
 
-export const FONT_VAR = "--font-inter";
+export const FONT_VAR = "--font-figtree";
 export const FONT_WEIGHT = 600;
 
 export const WORD = ["G", "O", "A", "L"] as const;

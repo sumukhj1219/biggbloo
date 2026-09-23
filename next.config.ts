@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['three'],
   allowedDevOrigins: [
     "*.ngrok-free.app",
     "*.ngrok-free.dev",
@@ -8,6 +9,7 @@ const nextConfig: NextConfig = {
     "*.ngrok.dev",
     "*.ngrok.io",
   ],
+
   async headers() {
     return [
       {

@@ -9,30 +9,6 @@ export interface CarouselVideo {
   poster?: string;
 }
 
-const FEATHER_PX = 32;
-const FEATHER_STEPS = 10;
-const smoothstep = (t: number) => t * t * (3 - 2 * t);
-const fade = (axis: "right" | "bottom") => {
-  const start: string[] = [];
-  const end: string[] = [];
-  for (let i = 0; i <= FEATHER_STEPS; i++) {
-    const t = i / FEATHER_STEPS;
-    const alpha = smoothstep(t).toFixed(3);
-    start.push(`rgba(0,0,0,${alpha}) ${(t * FEATHER_PX).toFixed(1)}px`);
-    end.unshift(
-      `rgba(0,0,0,${alpha}) calc(100% - ${(t * FEATHER_PX).toFixed(1)}px)`,
-    );
-  }
-  return `linear-gradient(to ${axis}, ${[...start, ...end].join(", ")})`;
-};
-const FEATHER = `${fade("right")}, ${fade("bottom")}`;
-const FEATHER_STYLE: React.CSSProperties = {
-  maskImage: FEATHER,
-  WebkitMaskImage: FEATHER,
-  maskComposite: "intersect",
-  WebkitMaskComposite: "source-in",
-};
-
 const Chevron = ({ direction }: { direction: "left" | "right" }) => (
   <svg
     viewBox="0 0 24 24"
@@ -106,10 +82,7 @@ const VideoCarousel = ({ videos }: { videos: CarouselVideo[] }) => {
 
   return (
     <div className="flex w-full flex-col gap-y-2">
-      <div
-        className="relative aspect-video w-full overflow-hidden"
-        style={FEATHER_STYLE}
-      >
+      <div className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black">
         <video
           ref={videoRef}
           src={current.src}
