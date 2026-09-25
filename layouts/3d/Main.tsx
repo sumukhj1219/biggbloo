@@ -2,20 +2,20 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
+import { useLayoutStore } from "@/store/useLayoutStore";
 import House from "./House";
 const DynamicLayout = dynamic(() => import("./Layout"), { ssr: false });
 
-interface MainProps {
-  active: boolean;
-  setActive: React.Dispatch<React.SetStateAction<boolean>>;
-}
+const Main = () => {
+  const active = useLayoutStore((state) => state.active);
+  const fading = useLayoutStore((state) => state.fading);
+  const toggleActive = useLayoutStore((state) => state.toggleActive);
 
-const Main = ({ active, setActive }: MainProps) => {
   return (
     <>
-      <button className="relative z-60" onClick={() => setActive((prev) => !prev)}>Switch</button>
+      <button className="relative z-60" onClick={toggleActive}>Switch</button>
       {active && (
-        <DynamicLayout>
+        <DynamicLayout fading={fading}>
           <House />
         </DynamicLayout>
       )}

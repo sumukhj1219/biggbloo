@@ -12,15 +12,9 @@ interface WireframeModelProps {
   edgeThreshold?: number;
 
   edgeThresholdByName?: Record<string, number>;
-  /**
-   * If given, the model is scaled so its own bounding box matches this
-   * world-space width/height — its natural export scale (whatever Blender
-   * happened to save) is irrelevant once these are set. Give both to match
-   * an exact target size (non-uniform if the model's own proportions don't
-   * match); give one to scale uniformly by that axis alone.
-   */
   fitWidth?: number;
   fitHeight?: number;
+  rotation?: [number, number, number];
 }
 const WireframeModel = ({
   url,
@@ -29,11 +23,13 @@ const WireframeModel = ({
   edgeThresholdByName = EMPTY_THRESHOLDS,
   fitWidth,
   fitHeight,
+  rotation,
 }: WireframeModelProps) => {
   const { scene } = useGLTF(url);
 
   const { wireframeScene, scale } = useMemo(() => {
     const root = scene.clone(true);
+    if (rotation) root.rotation.set(...rotation);
     const material = new THREE.LineBasicMaterial({ color });
 
     const meshes: THREE.Mesh[] = [];
@@ -57,14 +53,12 @@ const WireframeModel = ({
       const scaleX = fitWidth != null && size.x > 0 ? fitWidth / size.x : null;
       const scaleY =
         fitHeight != null && size.y > 0 ? fitHeight / size.y : null;
-      // Only one dimension given → scale uniformly by that one, rather than
-      // stretching the other axis by a default of 1 (its raw export size).
       const uniform = scaleX ?? scaleY ?? 1;
       scale = [scaleX ?? uniform, scaleY ?? uniform, scaleX ?? scaleY ?? uniform];
     }
 
     return { wireframeScene: root, scale };
-  }, [scene, color, edgeThreshold, edgeThresholdByName, fitWidth, fitHeight]);
+  }, [scene, color, edgeThreshold, edgeThresholdByName, fitWidth, fitHeight, rotation]);
 
   return <primitive object={wireframeScene} scale={scale} />;
 };

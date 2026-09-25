@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { useMemo } from "react";
+import { useThree } from "@react-three/fiber";
 
 /**
  * Casts a ray from the camera through a screen position (fx, fy as 0→1
@@ -51,4 +53,22 @@ export function rectToWorldBounds(
     width: right.x - left.x,
     height: top.y - bottom.y,
   };
+}
+
+/**
+ * A camera snapshot frozen at first render, captured before OrbitControls
+ * could have moved it via user input. DOM→world conversions (position,
+ * not live per-frame rendering) should use this instead of the live
+ * camera: OrbitControls mutates the real camera object in place, so any
+ * component that only re-renders occasionally (e.g. when a measured DOM
+ * rect changes) would otherwise bake in whatever orbit angle happened to
+ * be active at that particular re-render, permanently skewing an
+ * otherwise-fixed world position.
+ */
+export function useFrozenCamera(): THREE.Camera {
+  // Deliberately captured once on mount, not kept in sync with the live
+  // (orbiting) camera.
+  const { camera } = useThree();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => camera.clone(), []);
 }
