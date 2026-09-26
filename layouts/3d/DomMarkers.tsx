@@ -20,6 +20,7 @@ const CURRENT_MUSIC_X_OFFSET = 0.1;
 
 const DomMarkers = () => {
   const childRects = useLayoutStore((state) => state.childRects);
+  const toggleActive = useLayoutStore((state) => state.toggleActive);
   const camera = useFrozenCamera();
 
   const material = useMemo(
@@ -31,7 +32,13 @@ const DomMarkers = () => {
     return Object.entries(childRects).flatMap(([name, rects]) =>
       rects
         .filter(
-          ({ content }) => !(name === "currentMusic" && content.kind === "image"),
+          ({ content }) =>
+            !(
+              (name === "currentMusic" ||
+                name === "work" ||
+                name === "selfIntro") &&
+              content.kind === "image"
+            ),
         )
         .map(({ rect, content }) => {
           const { position, width, height } = rectToWorldBounds(
@@ -54,6 +61,10 @@ const DomMarkers = () => {
             overlayPosition.x += CURRENT_MUSIC_X_OFFSET;
             position.x += CURRENT_MUSIC_X_OFFSET;
           }
+          const isSwitch =
+            name === "navbar" &&
+            content.kind === "text" &&
+            content.text === "Switch";
           return {
             position,
             geometry,
@@ -61,10 +72,11 @@ const DomMarkers = () => {
             overlayPosition,
             worldWidth: width,
             worldHeight: height,
+            onClick: isSwitch ? toggleActive : undefined,
           };
         }),
     );
-  }, [childRects, camera]);
+  }, [childRects, camera, toggleActive]);
 
   return (
     <>
@@ -86,6 +98,7 @@ const DomMarkers = () => {
             content={item.content}
             worldWidth={item.worldWidth}
             worldHeight={item.worldHeight}
+            onClick={item.onClick}
           />
         </React.Fragment>
       ))}
@@ -101,11 +114,13 @@ const ChildOverlay = ({
   content,
   worldWidth,
   worldHeight,
+  onClick,
 }: {
   position: THREE.Vector3;
   content: ChildContent;
   worldWidth: number;
   worldHeight: number;
+  onClick?: () => void;
 }) => {
   if (content.kind === "text") {
     return (
@@ -118,10 +133,12 @@ const ChildOverlay = ({
           fontSize: `${Math.max(worldHeight * 0.75 * CSS_PX_PER_WORLD_UNIT, 2)}px`,
           fontFamily: "var(--font-figtree), sans-serif",
           whiteSpace: "nowrap",
-          pointerEvents: "none",
+          pointerEvents: onClick ? "auto" : "none",
         }}
       >
-        {content.text}
+        <span onClick={onClick} style={{ cursor: onClick ? "pointer" : undefined }}>
+          {content.text}
+        </span>
       </Html>
     );
   }

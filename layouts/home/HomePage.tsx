@@ -10,6 +10,7 @@ import { motion } from "motion/react";
 import { useElementRect } from "@/hooks/useElementRect";
 import { useChildRects } from "@/hooks/useChildRects";
 import { useLayoutStore, FADE_DURATION_S } from "@/store/useLayoutStore";
+import WorkContent from "../works/WorkContent";
 
 const HomePage = () => {
   const active = useLayoutStore((state) => state.active);
@@ -17,13 +18,18 @@ const HomePage = () => {
 
   const selfIntroRef = useRef<HTMLDivElement>(null);
   const currentMusicRef = useRef<HTMLDivElement>(null);
+  const workRef = useRef<HTMLDivElement>(null);
   const refs = useMemo(
     () => ({ selfIntro: selfIntroRef, currentMusic: currentMusicRef }),
     [],
   );
   useElementRect(refs);
   const childRectRefs = useMemo(
-    () => ({ selfIntro: selfIntroRef, currentMusic: currentMusicRef }),
+    () => ({
+      selfIntro: selfIntroRef,
+      currentMusic: currentMusicRef,
+      work: workRef,
+    }),
     [],
   );
   useChildRects(childRectRefs);
@@ -48,13 +54,17 @@ const HomePage = () => {
           <CurrentMusic ref={currentMusicRef} />
         </Reveal>
       </motion.div>
-      <Reveal index={3}>
         <Main />
-      </Reveal>
       {/*<FootballCard />*/}
-      {/*<Reveal index={4}>
-        <Experiments />
-      </Reveal>*/}
+      <motion.div
+        className={active ? "invisible" : ""}
+        animate={{ opacity: fading ? 0 : 1 }}
+        transition={{ duration: fading ? FADE_DURATION_S : 0 }}
+      >
+        <Reveal index={4}>
+          <WorkContent ref={workRef} />
+        </Reveal>
+      </motion.div>
     </Container>
   );
 };

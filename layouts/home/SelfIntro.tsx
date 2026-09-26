@@ -4,12 +4,7 @@ import Image from "next/image";
 import Heart from "@/icons/Heart";
 import Link from "next/link";
 import India from "@/icons/India";
-import ThemeToggle from "@/components/common/ThemeToggle";
 
-// Forwards to Container's own root now, not the paragraph specifically —
-// child-rect measurement is recursive (see useChildRects), so it finds and
-// decomposes the paragraph's words on its own once it walks this whole
-// subtree; it doesn't need a ref planted directly on the <p> to do that.
 const SelfIntro = forwardRef<HTMLDivElement>((_props, ref) => {
   return (
     <Container ref={ref} className="flex flex-col justify-center gap-y-3">

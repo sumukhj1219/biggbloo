@@ -6,8 +6,6 @@ import { rectToWorldBounds, useFrozenCamera } from "./screenToWorld";
 import WireframeModel from "./WireframeModel";
 
 const MODEL_Z = 1;
-// Must match Gear's own Y_OFFSET — the gear rides on the turntable's top
-// edge, so both need to move down together.
 const Y_OFFSET = 0.05;
 
 const CurrentMusicModel = () => {

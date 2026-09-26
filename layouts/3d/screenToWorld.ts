@@ -2,12 +2,6 @@ import * as THREE from "three";
 import { useMemo } from "react";
 import { useThree } from "@react-three/fiber";
 
-/**
- * Casts a ray from the camera through a screen position (fx, fy as 0→1
- * fractions) and finds where it crosses the z: targetZ plane — the real,
- * camera-accurate way to turn a screen position into a world position,
- * instead of guessing at a scale factor.
- */
 export function screenPointToWorld(
   fx: number,
   fy: number,
@@ -23,13 +17,6 @@ export function screenPointToWorld(
   return near.clone().add(direction.multiplyScalar(t));
 }
 
-/**
- * Projects a DOMRect's center and edges through the camera to get its real
- * world-space position, width and height at z: targetZ — both position AND
- * size come from the camera's actual projection, not a guessed scale
- * factor (a fixed pixels-per-world-unit ratio isn't accurate for a
- * perspective camera).
- */
 export function rectToWorldBounds(
   rect: DOMRect,
   camera: THREE.Camera,
@@ -55,19 +42,7 @@ export function rectToWorldBounds(
   };
 }
 
-/**
- * A camera snapshot frozen at first render, captured before OrbitControls
- * could have moved it via user input. DOM→world conversions (position,
- * not live per-frame rendering) should use this instead of the live
- * camera: OrbitControls mutates the real camera object in place, so any
- * component that only re-renders occasionally (e.g. when a measured DOM
- * rect changes) would otherwise bake in whatever orbit angle happened to
- * be active at that particular re-render, permanently skewing an
- * otherwise-fixed world position.
- */
 export function useFrozenCamera(): THREE.Camera {
-  // Deliberately captured once on mount, not kept in sync with the live
-  // (orbiting) camera.
   const { camera } = useThree();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => camera.clone(), []);

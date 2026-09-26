@@ -9,17 +9,13 @@ const DynamicLayout = dynamic(() => import("./Layout"), { ssr: false });
 const Main = () => {
   const active = useLayoutStore((state) => state.active);
   const fading = useLayoutStore((state) => state.fading);
-  const toggleActive = useLayoutStore((state) => state.toggleActive);
+
+  if (!active) return null;
 
   return (
-    <>
-      <button className="relative z-60" onClick={toggleActive}>Switch</button>
-      {active && (
-        <DynamicLayout fading={fading}>
-          <House />
-        </DynamicLayout>
-      )}
-    </>
+    <DynamicLayout fading={fading}>
+      <House />
+    </DynamicLayout>
   );
 };
 

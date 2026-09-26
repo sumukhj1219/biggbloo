@@ -1,21 +1,10 @@
 import * as THREE from "three";
 
-// A deterministic hash, not Math.random(): this needs to be safe to call
-// from inside useMemo (which React is free to re-invoke and discard results
-// from), and it needs the SAME line to get the SAME phase/direction every
-// time it's recomputed (e.g. on resize) — Math.random() would fail both.
 function pseudoRandom(seed: number): number {
   const x = Math.sin(seed * 12.9898) * 43758.5453;
   return x - Math.floor(x);
 }
 
-/**
- * Builds a flat grid of horizontal + vertical lines, centered at the local
- * origin (z: 0), with the aProgress/aPhase/aDirection attributes GridShaders
- * needs for the beam-travel animation. Shared by anything that wants that
- * same blueprint-grid look at some other size (the wall, per-element
- * markers, ...).
- */
 export function createGridGeometry(
   width: number,
   height: number,

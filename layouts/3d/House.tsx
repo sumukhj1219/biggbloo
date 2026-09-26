@@ -8,6 +8,8 @@ import DomMarkers from "./DomMarkers";
 import CurrentMusicModel from "./CurrentMusicModel";
 import MusicShelf from "./MusicShelf";
 import Gear from "./Gear";
+import SwitchGears from "./SwitchGears";
+import NoiseImage from "./NoiseImage";
 import { WIDTH, HEIGHT } from "./constants";
 
 const DIVISIONS_X = 30;
@@ -99,7 +101,7 @@ const House = () => {
           transparent
           uniforms={{
             uTime: { value: 0 },
-            uBeamColor: { value: new THREE.Color("#8e8be8") },
+            uBeamColor: { value: new THREE.Color("skyblue") },
           }}
           vertexShader={GridShaders.vertexShader}
           fragmentShader={GridShaders.fragmentShader}
@@ -107,8 +109,10 @@ const House = () => {
       </lineSegments>
       <DomMarkers />
       <CurrentMusicModel />
-      <MusicShelf />
       <Gear />
+      <SwitchGears />
+      <NoiseImage group="work" />
+      <NoiseImage group="selfIntro" />
     </>
   );
 };

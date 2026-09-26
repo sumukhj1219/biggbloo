@@ -27,9 +27,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
-    "opentype.js": "^2.0.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "wawoff2": "^2.0.1"
+    "typescript": "^5"
   }
 }

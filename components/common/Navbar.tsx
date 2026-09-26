@@ -5,15 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
-import ThemeToggle from "./ThemeToggle";
 import { useChildRects } from "@/hooks/useChildRects";
 import { useLayoutStore, FADE_DURATION_S } from "@/store/useLayoutStore";
 
 const links = [
   { label: "Home", href: "/" },
-  { label: "Work", href: "/work" },
-  { label: "Gallery", href: "/gallery" },
-  { label: "Projects", href: "/projects" },
+  { label: "Writings", href: "/writings" },
 ];
 
 const Navbar = () => {
@@ -22,10 +19,9 @@ const Navbar = () => {
   const refs = useMemo(() => ({ navbar: navRef }), []);
   useChildRects(refs);
 
-  // `active`/`fading` only ever flip from the home page's 3D toggle — on
-  // every other route they stay false, so this is a no-op there.
   const active = useLayoutStore((state) => state.active);
   const fading = useLayoutStore((state) => state.fading);
+  const toggleActive = useLayoutStore((state) => state.toggleActive);
 
   return (
     <motion.nav
@@ -56,7 +52,13 @@ const Navbar = () => {
             );
           })}
         </ul>
-        <ThemeToggle />
+        <span
+          onClick={toggleActive}
+          aria-label="Toggle 3D view"
+          className="ml-auto rounded-md text-muted-foreground transition-colors hover:text-accent-foreground cursor-pointer text-sm sm:text-lg"
+        >
+          Switch
+        </span>
       </div>
     </motion.nav>
   );

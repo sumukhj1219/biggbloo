@@ -12,8 +12,6 @@ const MODEL_Z = 1.1;
 const BEHIND_OFFSET = 0.1;
 const ROTATION_SPEED = 1;
 const SCALE = 0.5;
-// Must match CurrentMusicModel's own Y_OFFSET — the gear rides on the
-// turntable's top edge, so both need to move down together.
 const Y_OFFSET = 0.05;
 
 const Gear = () => {

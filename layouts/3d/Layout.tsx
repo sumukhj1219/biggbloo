@@ -27,7 +27,7 @@ const Layout = ({ children, fading }: LayoutProps) => {
         {/* useGLTF (WireframeModel, etc.) suspends while a .glb loads —
             without this boundary, that would error instead of just waiting. */}
         <Suspense fallback={null}>{children}</Suspense>
-        <OrbitControls minAzimuthAngle={-0.09} maxAzimuthAngle={0.09}  minPolarAngle={Math.PI / 2 - 0.25} maxPolarAngle={Math.PI / 2 + 0.25}  />
+        <OrbitControls minAzimuthAngle={-0.09} maxAzimuthAngle={0.09}  minPolarAngle={Math.PI / 2 - 0.25} maxPolarAngle={Math.PI / 2 + 0.25} enableZoom={false} />
       </Canvas>
     </motion.div>,
     document.body,
