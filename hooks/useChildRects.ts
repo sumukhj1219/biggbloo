@@ -7,18 +7,26 @@ import { useLayoutStore } from "@/store/useLayoutStore";
 export type ChildContent =
   | { kind: "text"; text: string }
   | { kind: "image"; src: string; alt: string }
+  | { kind: "icon"; viewBox: string; markup: string }
   | { kind: "other" };
 
 export interface ChildRect {
   rect: DOMRect;
   content: ChildContent;
+  // Whether this leaf sits inside an element marked data-3d-toggle — a
+  // stable marker independent of its (freely-changing) label/icon, unlike
+  // matching on literal text content.
+  interactive: boolean;
 }
+
+const INTERACTIVE_SELECTOR = "[data-3d-toggle]";
 
 function collectLeafRects(node: Node, out: ChildRect[]): void {
   if (node.nodeType === Node.TEXT_NODE) {
     const text = node.textContent ?? "";
     const words = text.match(/\S+/g) ?? [];
     let searchFrom = 0;
+    const interactive = !!node.parentElement?.closest(INTERACTIVE_SELECTOR);
 
     for (const word of words) {
       const start = text.indexOf(word, searchFrom);
@@ -31,7 +39,7 @@ function collectLeafRects(node: Node, out: ChildRect[]): void {
       range.setEnd(node, end);
       const rect = range.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
-        out.push({ rect, content: { kind: "text", text: word } });
+        out.push({ rect, content: { kind: "text", text: word }, interactive });
       }
     }
     return;
@@ -43,7 +51,15 @@ function collectLeafRects(node: Node, out: ChildRect[]): void {
   if (el instanceof SVGSVGElement) {
     const rect = el.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
-      out.push({ rect, content: { kind: "other" } });
+      out.push({
+        rect,
+        content: {
+          kind: "icon",
+          viewBox: el.getAttribute("viewBox") ?? `0 0 ${rect.width} ${rect.height}`,
+          markup: el.innerHTML,
+        },
+        interactive: !!el.closest(INTERACTIVE_SELECTOR),
+      });
     }
     return;
   }
@@ -56,13 +72,15 @@ function collectLeafRects(node: Node, out: ChildRect[]): void {
   if (meaningfulChildren.length === 0) {
     const rect = el.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
+      const interactive = !!el.closest(INTERACTIVE_SELECTOR);
       if (el instanceof HTMLImageElement) {
         out.push({
           rect,
           content: { kind: "image", src: el.currentSrc || el.src, alt: el.alt },
+          interactive,
         });
       } else {
-        out.push({ rect, content: { kind: "other" } });
+        out.push({ rect, content: { kind: "other" }, interactive });
       }
     }
     return;

@@ -14,7 +14,7 @@ const items = [
     covers: [
       "/works/spritez/og.png"
     ]
-  }
+  },
 ]
 
 const WorkItems = () => {
@@ -36,14 +36,14 @@ const WorkItems = () => {
               opacity: isBlurred ? 0.5 : 1,
             }}
             transition={{ duration: 0.3 }}
-            className="relative aspect-[4/3] overflow-hidden rounded-sm bg-secondary cursor-pointer"
+            className="relative aspect-[4/3]   inset-shadow-xs  overflow-hidden rounded-lg bg-secondary cursor-pointer"
           >
             <Image
               src={item.covers[0]}
               alt={item.title}
               fill
               sizes="(min-width: 640px) 33vw, 50vw"
-              className="object-cover"
+              className="object-cover border-2"
             />
             <motion.div
               initial={false}

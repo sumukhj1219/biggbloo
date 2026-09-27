@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useChildRects } from "@/hooks/useChildRects";
 import { useLayoutStore, FADE_DURATION_S } from "@/store/useLayoutStore";
+import Sparkle from "@/icons/Sparkle";
 
 const links = [
   { label: "Home", href: "/" },
@@ -55,9 +56,11 @@ const Navbar = () => {
         <span
           onClick={toggleActive}
           aria-label="Toggle 3D view"
-          className="ml-auto rounded-md text-muted-foreground transition-colors hover:text-accent-foreground cursor-pointer text-sm sm:text-lg"
+          data-3d-toggle="true"
+          className="ml-auto rounded-md text-muted-foreground gap-x-1 flex items-center transition-colors hover:text-accent-foreground cursor-pointer text-sm sm:text-lg"
         >
-          Switch
+          <Sparkle />
+          Magic
         </span>
       </div>
     </motion.nav>

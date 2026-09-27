@@ -20,15 +20,21 @@ const Layout = ({ children, fading }: LayoutProps) => {
       transition={{ duration: FADE_DURATION_S }}
     >
       <Canvas>
-        {/* `color` isn't a real Canvas prop — R3F silently ignores unknown
-            ones. The scene's background is set by adding a <color> element
-            attached to it, not a prop on Canvas itself. */}
         <color attach="background" args={["blue"]} />
-        {/* useGLTF (WireframeModel, etc.) suspends while a .glb loads —
-            without this boundary, that would error instead of just waiting. */}
         <Suspense fallback={null}>{children}</Suspense>
         <OrbitControls minAzimuthAngle={-0.09} maxAzimuthAngle={0.09}  minPolarAngle={Math.PI / 2 - 0.25} maxPolarAngle={Math.PI / 2 + 0.25} enableZoom={false} />
       </Canvas>
+      <div
+        className="pointer-events-none absolute inset-0 z-10"
+        style={{
+          backdropFilter: "blur(14px)",
+          WebkitBackdropFilter: "blur(14px)",
+          maskImage:
+            "radial-gradient(ellipse at center, transparent 50%, black 100%)",
+          WebkitMaskImage:
+            "radial-gradient(ellipse at center, transparent 50%, black 100%)",
+        }}
+      />
     </motion.div>,
     document.body,
   );

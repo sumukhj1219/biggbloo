@@ -40,7 +40,7 @@ const DomMarkers = () => {
               content.kind === "image"
             ),
         )
-        .map(({ rect, content }) => {
+        .map(({ rect, content, interactive }) => {
           const { position, width, height } = rectToWorldBounds(
             rect,
             camera,
@@ -61,10 +61,6 @@ const DomMarkers = () => {
             overlayPosition.x += CURRENT_MUSIC_X_OFFSET;
             position.x += CURRENT_MUSIC_X_OFFSET;
           }
-          const isSwitch =
-            name === "navbar" &&
-            content.kind === "text" &&
-            content.text === "Switch";
           return {
             position,
             geometry,
@@ -72,7 +68,7 @@ const DomMarkers = () => {
             overlayPosition,
             worldWidth: width,
             worldHeight: height,
-            onClick: isSwitch ? toggleActive : undefined,
+            onClick: interactive ? toggleActive : undefined,
           };
         }),
     );
@@ -139,6 +135,26 @@ const ChildOverlay = ({
         <span onClick={onClick} style={{ cursor: onClick ? "pointer" : undefined }}>
           {content.text}
         </span>
+      </Html>
+    );
+  }
+
+  if (content.kind === "icon") {
+    return (
+      <Html
+        transform
+        distanceFactor={DISTANCE_FACTOR}
+        position={[position.x, position.y, position.z]}
+        style={{ pointerEvents: onClick ? "auto" : "none" }}
+      >
+        <svg
+          viewBox={content.viewBox}
+          width={worldWidth * CSS_PX_PER_WORLD_UNIT}
+          height={worldHeight * CSS_PX_PER_WORLD_UNIT}
+          style={{ color: "white", cursor: onClick ? "pointer" : undefined }}
+          onClick={onClick}
+          dangerouslySetInnerHTML={{ __html: content.markup }}
+        />
       </Html>
     );
   }
