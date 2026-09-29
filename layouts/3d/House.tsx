@@ -6,7 +6,6 @@ import { useFrame } from "@react-three/fiber";
 import { GridShaders } from "@/components/shaders/GridShaders";
 import DomMarkers from "./DomMarkers";
 import CurrentMusicModel from "./CurrentMusicModel";
-import MusicShelf from "./MusicShelf";
 import Gear from "./Gear";
 import SwitchGears from "./SwitchGears";
 import NoiseImage from "./NoiseImage";
@@ -113,6 +112,7 @@ const House = () => {
       <SwitchGears />
       <NoiseImage group="work" />
       <NoiseImage group="selfIntro" />
+      <NoiseImage group="currentMusic" />
     </>
   );
 };

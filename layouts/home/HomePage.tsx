@@ -11,6 +11,7 @@ import { useElementRect } from "@/hooks/useElementRect";
 import { useChildRects } from "@/hooks/useChildRects";
 import { useLayoutStore, FADE_DURATION_S } from "@/store/useLayoutStore";
 import WorkContent from "../works/WorkContent";
+import FoosballGame from "@/components/foosball/FoosballGame";
 
 const HomePage = () => {
   const active = useLayoutStore((state) => state.active);
@@ -63,6 +64,15 @@ const HomePage = () => {
       >
         <Reveal index={4}>
           <WorkContent ref={workRef} />
+        </Reveal>
+      </motion.div>
+      <motion.div
+        className={active ? "invisible" : ""}
+        animate={{ opacity: fading ? 0 : 1 }}
+        transition={{ duration: fading ? FADE_DURATION_S : 0 }}
+      >
+        <Reveal index={5}>
+          <FoosballGame />
         </Reveal>
       </motion.div>
     </Container>

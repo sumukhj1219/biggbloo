@@ -12,6 +12,13 @@ const IMAGE_Z = 1;
 const THRESHOLD = 0.25;
 const NOISE_URL = "/app/noise.png";
 
+// currentMusic's image sits right where the musicPlayer.glb turntable
+// model is (also at Z=1) — nudged right and pushed back a bit so it only
+// barely overlaps/peeks from behind the model instead of directly
+// coinciding with it.
+const CURRENT_MUSIC_X_OFFSET = 0.08;
+const CURRENT_MUSIC_Z_OFFSET = 0.15;
+
 interface NoiseImageProps {
   group: string;
 }
@@ -29,8 +36,17 @@ const NoiseImage = ({ group }: NoiseImageProps) => {
 
   if (!imageItem) return null;
 
+  const xOffset = group === "currentMusic" ? CURRENT_MUSIC_X_OFFSET : 0;
+  const z = group === "currentMusic" ? IMAGE_Z + CURRENT_MUSIC_Z_OFFSET / 2 : IMAGE_Z;
+
   return (
-    <NoiseImageMesh rect={imageItem.rect} src={imageItem.src} camera={camera} />
+    <NoiseImageMesh
+      rect={imageItem.rect}
+      src={imageItem.src}
+      camera={camera}
+      xOffset={xOffset}
+      z={z}
+    />
   );
 };
 
@@ -38,10 +54,14 @@ const NoiseImageMesh = ({
   rect,
   src,
   camera,
+  xOffset,
+  z,
 }: {
   rect: DOMRect;
   src: string;
   camera: THREE.Camera;
+  xOffset: number;
+  z: number;
 }) => {
   const [texture, noiseTexture] = useTexture([src, NOISE_URL]);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
@@ -66,7 +86,7 @@ const NoiseImageMesh = ({
   );
 
   return (
-    <mesh position={[position.x, position.y, IMAGE_Z]}>
+    <mesh position={[position.x + xOffset, position.y, z]}>
       <planeGeometry args={[width, height]} />
       <shaderMaterial
         ref={materialRef}
