@@ -1,27 +1,17 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { forwardRef, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Matter from "matter-js";
 import { motion, AnimatePresence } from "motion/react";
 import { anton } from "@/lib/fonts";
+import { GoalShutter } from "./shutter-type/GoalShutter";
+import { LOOP_MS as GOAL_SHUTTER_LOOP_MS } from "./shutter-type/params";
 
 const MATCH_SECONDS = 90;
 
-// Goal celebration timing: bottom "GOAL!" slides up first, then the
-// middle and top rows split in from either side, all three dim once
-// settled, then the orange flash pops in/out, then everything exits left.
-const GOAL_ROW_DELAYS = { top: 0.3, middle: 0.15, bottom: 0 };
-const GOAL_DIM_DURATION = 1.1;
-const GOAL_FLASH_DELAY = 1.5;
-const GOAL_FLASH_DURATION = 1.2;
-const GOAL_ANIM_TOTAL_MS = 3200;
-const GOAL_EXIT = { x: -240, opacity: 0, transition: { duration: 0.4, ease: "easeIn" as const } };
+const GOAL_ANIM_TOTAL_MS = GOAL_SHUTTER_LOOP_MS;
 
-// The five scoreboard pieces sit flush against each other (no gaps),
-// left to right: you-text, you-scorecard, timer, ai-scorecard, ai-text.
-// Widths are scaled down from the source assets' native 43/43/85/43/43
-// at 36px tall, keeping each piece's aspect ratio at the new height.
 const SCOREBOARD_HEIGHT = 24;
 const SCOREBOARD_SEGMENTS = [
   { key: "you-text", src: "/football/you-text.svg", width: 29, color: "#fff", fontSize: 12 },
@@ -31,10 +21,6 @@ const SCOREBOARD_SEGMENTS = [
   { key: "ai-text", src: "/football/ai-text.svg", width: 29, color: "#fff", fontSize: 12 },
 ] as const;
 
-// Everything below is simulated in a fixed logical coordinate space
-// (independent of actual screen pixels) — the canvas is resized/scaled
-// responsively at render time, so physics behaves identically regardless
-// of viewport width.
 const PHYSICS_WIDTH = 800;
 const PHYSICS_HEIGHT = 400;
 const ASPECT = PHYSICS_WIDTH / PHYSICS_HEIGHT;
@@ -43,7 +29,6 @@ const WALL_THICKNESS = 20;
 const GOAL_HEIGHT = 130;
 const BALL_RADIUS = 8;
 
-// Pitch markings, in the same physics units as everything else.
 const PITCH_MARGIN = 6;
 const CENTER_CIRCLE_RADIUS = 42;
 const PENALTY_BOX_DEPTH = 90;
@@ -56,28 +41,18 @@ const CORNER_ARC_RADIUS = 10;
 
 const PADDLE_LENGTH = 46;
 const PADDLE_WIDTH = 12;
-// Standing at rest: aligned with the rod (vertical), like a real foosball
-// man before the rod is spun. A kick swings the leg out to horizontal,
-// toward the opponent's side, then back to standing.
 const REST_ANGLE = Math.PI / 2;
 const KICK_DURATION_MS = 380;
 
-// Sliding a rod up/down along its own line.
 const SLIDE_MARGIN = 22;
 const DRAG_THRESHOLD = 8;
 
-// AI (red/team B): tracks the ball's Y at a bounded speed and kicks when
-// the ball is close enough in X, with a cooldown so it doesn't spam.
-const AI_SLIDE_SPEED = 0.55; // physics units per ms
+const AI_SLIDE_SPEED = 0.55;
 const AI_KICK_RANGE = 55;
 const AI_KICK_COOLDOWN_MS = 500;
 
-// Ball (re)spawns by dropping in from the top of the pitch and rolling
-// wherever momentum + friction take it — no artificial re-centering.
 const DROP_Y = 16;
 const DROP_SPEED = 6.5;
-// The ball is never allowed to fully settle — once its speed decays
-// below this floor it's nudged back up, so it keeps drifting slowly.
 const MIN_BALL_SPEED = 0.8;
 
 const TEAM_A_COLOR = "#3b6ef2";
@@ -90,8 +65,6 @@ interface RodConfig {
   playerYs: number[];
 }
 
-// A real 4-3-3: goalkeeper + 4 defenders + 3 midfielders + 3 forwards =
-// 11 players (four rods) per side, mirrored across the pitch.
 const GK_YS = [PHYSICS_HEIGHT / 2];
 const DEF_YS = [
   PHYSICS_HEIGHT / 2 - 135,
@@ -102,10 +75,6 @@ const DEF_YS = [
 const MID_YS = [PHYSICS_HEIGHT / 2 - 110, PHYSICS_HEIGHT / 2, PHYSICS_HEIGHT / 2 + 110];
 const FWD_YS = [PHYSICS_HEIGHT / 2 - 90, PHYSICS_HEIGHT / 2, PHYSICS_HEIGHT / 2 + 90];
 
-// Real tables don't cluster each team on its own half — the rods
-// interleave down the length of the table, so a team's defense directly
-// faces the opponent's attack, and the two midfields sit side by side
-// straddling the halfway line.
 const RODS: RodConfig[] = [
   { id: "a-gk", x: 40, team: "a", playerYs: GK_YS },
   { id: "a-def", x: 140, team: "a", playerYs: DEF_YS },
@@ -137,7 +106,7 @@ const easeOutBack = (t: number) => {
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 };
 
-const FoosballGame = () => {
+const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState({ a: 0, b: 0 });
@@ -147,8 +116,6 @@ const FoosballGame = () => {
   const goalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gameApiRef = useRef<{ start: () => void; pause: () => void } | null>(null);
 
-  // Counts up from 0 to the 90s match length, outside the physics effect
-  // so it can drive React state without re-running the whole simulation.
   useEffect(() => {
     if (!started || elapsed >= MATCH_SECONDS) {
       if (started && elapsed >= MATCH_SECONDS) gameApiRef.current?.pause();
@@ -171,10 +138,6 @@ const FoosballGame = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Fine film-grain, tiled across the turf so it doesn't read as flat,
-    // perfectly smooth color. Generated (rather than reusing the site's
-    // big-blob noise.png mask, which tiles as ugly splotches at this
-    // scale) as a small random-grayscale tile repeated via a pattern.
     const grainTile = document.createElement("canvas");
     grainTile.width = 64;
     grainTile.height = 64;
@@ -193,8 +156,6 @@ const FoosballGame = () => {
       grainPattern = ctx.createPattern(grainTile, "repeat");
     }
 
-    // Nothing moves or responds to input until the Ready button flips
-    // this on — the pitch still renders, just frozen.
     const runningRef = { current: false };
 
     const engine = Matter.Engine.create();
@@ -204,7 +165,6 @@ const FoosballGame = () => {
     const walls = [
       Matter.Bodies.rectangle(PHYSICS_WIDTH / 2, -WALL_THICKNESS / 2, PHYSICS_WIDTH + WALL_THICKNESS * 2, WALL_THICKNESS, { isStatic: true }),
       Matter.Bodies.rectangle(PHYSICS_WIDTH / 2, PHYSICS_HEIGHT + WALL_THICKNESS / 2, PHYSICS_WIDTH + WALL_THICKNESS * 2, WALL_THICKNESS, { isStatic: true }),
-      // Left/right walls split above + below the goal gap, not spanning it.
       Matter.Bodies.rectangle(-WALL_THICKNESS / 2, (PHYSICS_HEIGHT / 2 - GOAL_HEIGHT / 2) / 2, WALL_THICKNESS, PHYSICS_HEIGHT / 2 - GOAL_HEIGHT / 2, { isStatic: true }),
       Matter.Bodies.rectangle(-WALL_THICKNESS / 2, PHYSICS_HEIGHT - (PHYSICS_HEIGHT / 2 - GOAL_HEIGHT / 2) / 2, WALL_THICKNESS, PHYSICS_HEIGHT / 2 - GOAL_HEIGHT / 2, { isStatic: true }),
       Matter.Bodies.rectangle(PHYSICS_WIDTH + WALL_THICKNESS / 2, (PHYSICS_HEIGHT / 2 - GOAL_HEIGHT / 2) / 2, WALL_THICKNESS, PHYSICS_HEIGHT / 2 - GOAL_HEIGHT / 2, { isStatic: true }),
@@ -212,7 +172,6 @@ const FoosballGame = () => {
     ];
     Matter.World.add(engine.world, walls);
 
-    // Sits still at center until the match actually starts.
     const ball = Matter.Bodies.circle(PHYSICS_WIDTH / 2, PHYSICS_HEIGHT / 2, BALL_RADIUS, {
       restitution: 0.85,
       friction: 0.02,
@@ -277,8 +236,6 @@ const FoosballGame = () => {
 
     const triggerKick = (rod: RodState, now: number) => {
       if (rod.kickStart !== null) return;
-      // Kick swings toward the opponent's goal: team "a" faces +x, team
-      // "b" faces -x, starting from whatever the leg's current angle is.
       rod.kickStartAngle = rod.angle;
       rod.kickTargetAngle = rod.config.team === "a" ? 0 : Math.PI;
       rod.kickStart = now;
@@ -298,7 +255,6 @@ const FoosballGame = () => {
       }
 
       rodStates.forEach((rod) => {
-        // AI: slide to track the ball, kick when it's in range.
         if (rod.config.team === "b") {
           const desired = clamp(
             ball.position.y - PHYSICS_HEIGHT / 2,
@@ -346,9 +302,6 @@ const FoosballGame = () => {
 
       Matter.Engine.update(engine, dt);
 
-      // Never let the ball come to a full stop — air friction is real
-      // (kicks slow down over time) but once it decays below a slow
-      // drift, nudge it back up to that floor instead of settling dead.
       const vx = ball.velocity.x;
       const vy = ball.velocity.y;
       const speed = Math.hypot(vx, vy);
@@ -382,7 +335,6 @@ const FoosballGame = () => {
     const render = () => {
       ctx.clearRect(0, 0, PHYSICS_WIDTH, PHYSICS_HEIGHT);
 
-      // Pitch — mown-stripe turf, alternating bands across the width.
       const STRIPE_COUNT = 10;
       const stripeW = PHYSICS_WIDTH / STRIPE_COUNT;
       for (let i = 0; i < STRIPE_COUNT; i++) {
@@ -390,8 +342,6 @@ const FoosballGame = () => {
         ctx.fillRect(i * stripeW, 0, stripeW, PHYSICS_HEIGHT);
       }
 
-      // Grass grain — breaks up the flat stripe fill so it doesn't read
-      // as smooth solid color.
       if (grainPattern) {
         ctx.save();
         ctx.globalAlpha = 0.12;
@@ -405,7 +355,6 @@ const FoosballGame = () => {
       ctx.lineWidth = 2;
       const midY = PHYSICS_HEIGHT / 2;
 
-      // Touchlines / goal lines (outer boundary)
       ctx.strokeRect(
         PITCH_MARGIN,
         PITCH_MARGIN,
@@ -413,7 +362,6 @@ const FoosballGame = () => {
         PHYSICS_HEIGHT - PITCH_MARGIN * 2,
       );
 
-      // Halfway line + center circle + center spot
       ctx.beginPath();
       ctx.moveTo(PHYSICS_WIDTH / 2, PITCH_MARGIN);
       ctx.lineTo(PHYSICS_WIDTH / 2, PHYSICS_HEIGHT - PITCH_MARGIN);
@@ -426,7 +374,6 @@ const FoosballGame = () => {
       ctx.arc(PHYSICS_WIDTH / 2, midY, 2.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Corner arcs
       const corners: [number, number, number, number][] = [
         [PITCH_MARGIN, PITCH_MARGIN, 0, Math.PI / 2],
         [PHYSICS_WIDTH - PITCH_MARGIN, PITCH_MARGIN, Math.PI / 2, Math.PI],
@@ -439,10 +386,9 @@ const FoosballGame = () => {
         ctx.stroke();
       });
 
-      // Penalty + six-yard boxes and arc, mirrored for both ends
       const drawEndMarkings = (side: 1 | -1) => {
         const goalX = side === 1 ? 0 : PHYSICS_WIDTH;
-        const dir = side; // +1: box extends rightward from x=0; -1: leftward from x=PHYSICS_WIDTH
+        const dir = side;
 
         ctx.strokeRect(
           goalX,
@@ -463,8 +409,6 @@ const FoosballGame = () => {
         ctx.arc(spotX, midY, 2.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // The "D": arc of the circle around the penalty spot that falls
-        // outside the box line.
         const boxEdgeX = goalX + dir * PENALTY_BOX_DEPTH;
         const dx = Math.abs(boxEdgeX - spotX);
         const halfAngle = Math.acos(clamp(dx / PENALTY_ARC_RADIUS, -1, 1));
@@ -476,12 +420,10 @@ const FoosballGame = () => {
       drawEndMarkings(1);
       drawEndMarkings(-1);
 
-      // Goals — recessed net behind the goal line, with post caps.
       const drawGoal = (side: 1 | -1) => {
         const goalX = side === 1 ? -14 : PHYSICS_WIDTH - 2;
         ctx.fillStyle = "rgba(0,0,0,0.35)";
         ctx.fillRect(goalX, midY - GOAL_HEIGHT / 2, 16, GOAL_HEIGHT);
-        // Net crosshatch
         ctx.strokeStyle = "rgba(255,255,255,0.25)";
         ctx.lineWidth = 1;
         for (let i = 1; i < 4; i++) {
@@ -498,7 +440,6 @@ const FoosballGame = () => {
           ctx.lineTo(goalX + 16, ny);
           ctx.stroke();
         }
-        // Posts
         ctx.fillStyle = "#f4f4f4";
         ctx.strokeStyle = "rgba(0,0,0,0.3)";
         ctx.lineWidth = 1;
@@ -513,8 +454,6 @@ const FoosballGame = () => {
       drawGoal(1);
       drawGoal(-1);
 
-      // Rods (metal bar visual, full height) — a soft drop shadow gives
-      // them a sense of sitting above the pitch surface.
       rodStates.forEach((rod) => {
         ctx.save();
         ctx.shadowColor = "rgba(0,0,0,0.35)";
@@ -530,10 +469,6 @@ const FoosballGame = () => {
         ctx.restore();
       });
 
-      // Players — seen from directly above, a standing man is just a
-      // head (his body points straight down, foreshortened to nothing).
-      // Rotating the rod tips him toward horizontal, and the body swings
-      // into view, growing out from under the head as it goes.
       rodStates.forEach((rod) => {
         const color = rod.config.team === "a" ? TEAM_A_COLOR : TEAM_B_COLOR;
         const h = PADDLE_WIDTH;
@@ -565,9 +500,6 @@ const FoosballGame = () => {
         });
       });
 
-      // Ball — a colorful swirl inspired by the 2026 World Cup ball
-      // (pink/yellow/teal panels on white), rotated with the ball's own
-      // spin so it visibly rolls as it moves.
       ctx.save();
       ctx.translate(ball.position.x, ball.position.y);
       ctx.rotate(ball.angle);
@@ -628,9 +560,6 @@ const FoosballGame = () => {
       };
     };
 
-    // Dragging a rod slides it along its own line; releasing without much
-    // movement counts as a tap (kick) instead. Only team "a" (blue, the
-    // human player) responds — team "b" is AI-controlled.
     let drag: { rod: RodState; startY: number; startOffset: number; moved: boolean } | null = null;
 
     const handlePointerDown = (e: PointerEvent) => {
@@ -669,7 +598,6 @@ const FoosballGame = () => {
       drag = null;
     };
 
-    // Force-triggers the goal celebration on demand.
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter") triggerGoalFlash();
     };
@@ -694,10 +622,7 @@ const FoosballGame = () => {
   }, []);
 
   return (
-    <div className="w-full">
-      {/* Reserves the resting spot right above the field's edge. The
-          scoreboard itself starts positioned down behind the canvas (lower
-          z-index, overlapping into it) and rises up from under it. */}
+    <div className="w-full" ref={ref}>
       <div className="relative flex h-[18px] justify-center sm:h-6">
         {!started ? (
           <button
@@ -759,142 +684,14 @@ const FoosballGame = () => {
           {goalPulse !== null && (
             <motion.div
               key={goalPulse}
-              className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
+              className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-6 sm:p-10"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
             >
-              <div className="relative flex flex-col items-center gap-y-1">
-                {/* Top row — splits in from either side, last to arrive. */}
-                <div className={`${anton.className} flex text-2xl text-black sm:text-4xl`}>
-                  <motion.span
-                    initial={{ x: -60, opacity: 0 }}
-                    animate={{ x: 0, opacity: [0, 1, 1, 0.25] }}
-                    transition={{
-                      x: { delay: GOAL_ROW_DELAYS.top, duration: 0.35, ease: "easeOut" },
-                      opacity: {
-                        delay: GOAL_ROW_DELAYS.top,
-                        duration: GOAL_DIM_DURATION,
-                        times: [0, 0.3, 0.75, 1],
-                      },
-                    }}
-                    exit={GOAL_EXIT}
-                  >
-                    GO
-                  </motion.span>
-                  <motion.span
-                    initial={{ x: 60, opacity: 0 }}
-                    animate={{ x: 0, opacity: [0, 1, 1, 0.25] }}
-                    transition={{
-                      x: { delay: GOAL_ROW_DELAYS.top, duration: 0.35, ease: "easeOut" },
-                      opacity: {
-                        delay: GOAL_ROW_DELAYS.top,
-                        duration: GOAL_DIM_DURATION,
-                        times: [0, 0.3, 0.75, 1],
-                      },
-                    }}
-                    exit={GOAL_EXIT}
-                  >
-                    AL!
-                  </motion.span>
-                </div>
-
-                {/* Middle row — same split, arrives second. */}
-                <div className={`${anton.className} flex text-2xl text-black sm:text-4xl`}>
-                  <motion.span
-                    initial={{ x: -60, opacity: 0 }}
-                    animate={{ x: 0, opacity: [0, 1, 1, 0.25] }}
-                    transition={{
-                      x: { delay: GOAL_ROW_DELAYS.middle, duration: 0.35, ease: "easeOut" },
-                      opacity: {
-                        delay: GOAL_ROW_DELAYS.middle,
-                        duration: GOAL_DIM_DURATION,
-                        times: [0, 0.3, 0.75, 1],
-                      },
-                    }}
-                    exit={GOAL_EXIT}
-                  >
-                    GO
-                  </motion.span>
-                  <motion.span
-                    initial={{ x: 60, opacity: 0 }}
-                    animate={{ x: 0, opacity: [0, 1, 1, 0.25] }}
-                    transition={{
-                      x: { delay: GOAL_ROW_DELAYS.middle, duration: 0.35, ease: "easeOut" },
-                      opacity: {
-                        delay: GOAL_ROW_DELAYS.middle,
-                        duration: GOAL_DIM_DURATION,
-                        times: [0, 0.3, 0.75, 1],
-                      },
-                    }}
-                    exit={GOAL_EXIT}
-                  >
-                    AL!
-                  </motion.span>
-                </div>
-
-                {/* Bottom row — slides up first. */}
-                <motion.div
-                  className={`${anton.className} text-2xl text-black sm:text-4xl`}
-                  initial={{ y: 40, opacity: 0 }}
-                  animate={{ y: 0, opacity: [0, 1, 1, 0.25] }}
-                  transition={{
-                    y: { delay: GOAL_ROW_DELAYS.bottom, duration: 0.4, ease: "easeOut" },
-                    opacity: {
-                      delay: GOAL_ROW_DELAYS.bottom,
-                      duration: GOAL_DIM_DURATION,
-                      times: [0, 0.3, 0.75, 1],
-                    },
-                  }}
-                  exit={GOAL_EXIT}
-                >
-                  GOAL!
-                </motion.div>
-
-                {/* Flashy orange pop, appears once the three rows have
-                    dimmed — scales in, strobes between orange and yellow
-                    while held, then scales back out. */}
-                <motion.div
-                  className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded px-6 py-2 shadow-lg"
-                  initial={{ scale: 0, opacity: 0, backgroundColor: "#f97316" }}
-                  animate={{
-                    scale: [0, 1.3, 1, 1, 0],
-                    opacity: [0, 1, 1, 1, 0],
-                    backgroundColor: [
-                      "#f97316",
-                      "#f97316",
-                      "#fde047",
-                      "#f97316",
-                      "#fde047",
-                      "#f97316",
-                      "#fde047",
-                      "#f97316",
-                      "#f97316",
-                    ],
-                  }}
-                  transition={{
-                    scale: {
-                      delay: GOAL_FLASH_DELAY,
-                      duration: GOAL_FLASH_DURATION,
-                      times: [0, 0.2, 0.3, 0.9, 1],
-                      ease: "easeOut",
-                    },
-                    opacity: {
-                      delay: GOAL_FLASH_DELAY,
-                      duration: GOAL_FLASH_DURATION,
-                      times: [0, 0.2, 0.3, 0.9, 1],
-                      ease: "easeOut",
-                    },
-                    backgroundColor: {
-                      delay: GOAL_FLASH_DELAY,
-                      duration: GOAL_FLASH_DURATION,
-                      times: [0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
-                      ease: "linear",
-                    },
-                  }}
-                  exit={GOAL_EXIT}
-                >
-                  <span className={`${anton.className} text-2xl text-black sm:text-4xl`}>
-                    GOAL!
-                  </span>
-                </motion.div>
+              <div className="w-full max-w-xs sm:max-w-sm">
+                <GoalShutter />
               </div>
             </motion.div>
           )}
@@ -905,6 +702,7 @@ const FoosballGame = () => {
       </p>
     </div>
   );
-};
+});
+FoosballGame.displayName = "FoosballGame";
 
 export default FoosballGame;

@@ -20,8 +20,9 @@ const HomePage = () => {
   const selfIntroRef = useRef<HTMLDivElement>(null);
   const currentMusicRef = useRef<HTMLDivElement>(null);
   const workRef = useRef<HTMLDivElement>(null);
+  const foosballRef = useRef<HTMLDivElement>(null);
   const refs = useMemo(
-    () => ({ selfIntro: selfIntroRef, currentMusic: currentMusicRef }),
+    () => ({ selfIntro: selfIntroRef, currentMusic: currentMusicRef, foosball: foosballRef }),
     [],
   );
   useElementRect(refs);
@@ -30,6 +31,7 @@ const HomePage = () => {
       selfIntro: selfIntroRef,
       currentMusic: currentMusicRef,
       work: workRef,
+      foosball: foosballRef,
     }),
     [],
   );
@@ -72,7 +74,7 @@ const HomePage = () => {
         transition={{ duration: fading ? FADE_DURATION_S : 0 }}
       >
         <Reveal index={5}>
-          <FoosballGame />
+          <FoosballGame ref={foosballRef} />
         </Reveal>
       </motion.div>
     </Container>

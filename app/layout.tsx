@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Navbar from "@/components/common/Navbar";
 import Reveal from "@/components/common/Reveal";
 import "./globals.css";
-import { figtree } from "@/lib/fonts";
+import { figtree, anton } from "@/lib/fonts";
+import "claudesprites/styles.css";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -11,11 +12,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${figtree.variable} h-full antialiased`}
-    >
-      <body className="min-h-full max-w-2xl w-full mx-auto flex flex-col px-4 py-8 sm:px-6 sm:py-16"><Reveal>
+    <html lang="en" className={`${figtree.variable} ${anton.variable} h-full antialiased`}>
+      <body className="min-h-full max-w-2xl w-full mx-auto flex flex-col px-4 py-8 sm:px-6 sm:py-16">
+        <Reveal>
           <Navbar />
         </Reveal>
         {children}
