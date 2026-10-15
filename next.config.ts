@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['three'],
   allowedDevOrigins: [
     "*.ngrok-free.app",
     "*.ngrok-free.dev",
