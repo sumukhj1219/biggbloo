@@ -36,14 +36,18 @@ const WorkItems = () => {
               opacity: isBlurred ? 0.5 : 1,
             }}
             transition={{ duration: 0.3 }}
-            className="relative aspect-[4/3]   inset-shadow-xs  overflow-hidden rounded-lg bg-secondary cursor-pointer"
+            className="relative aspect-[4/3] isolate inset-shadow-xs overflow-hidden border-2 bg-secondary cursor-pointer"
           >
             <Image
               src={item.covers[0]}
               alt={item.title}
               fill
               sizes="(min-width: 640px) 33vw, 50vw"
-              className="object-cover border-2"
+              className="object-cover scale-[1.15]"
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 shadow-[inset_0_0_32px_0px_var(--color-background)]"
             />
             <motion.div
               initial={false}
