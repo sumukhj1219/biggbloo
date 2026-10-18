@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -12,7 +12,6 @@ import DitherBackground from "@/components/ui/DitherBackground";
 
 const MotionLink = motion.create(Link);
 
-// three.js is only downloaded once Magic is first clicked.
 const RockScene = dynamic(() => import("@/components/three/RockScene"), { ssr: false });
 
 const links = [
@@ -23,10 +22,15 @@ const links = [
 const Navbar = () => {
   const pathname = usePathname();
   const [magic, setMagic] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const finishClose = useCallback(() => {
+    setClosing(false);
+    setMagic(false);
+  }, []);
 
   useEffect(() => {
     if (!magic) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMagic(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setClosing(true);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [magic]);
@@ -58,7 +62,6 @@ const Navbar = () => {
                       bg,
                     )}
                   />
-                  {/* Link height is 1.75rem / 2.25rem (sm); width = height * 3/4. */}
                   <HoverChecker fill={fill} className="w-[1.3125rem] sm:w-[1.6875rem]" />
                   <span className="px-2 py-1">{label}</span>
                 </MotionLink>
@@ -83,7 +86,6 @@ const Navbar = () => {
           <span className="px-2 py-1">Magic</span>
         </motion.button>
       </div>
-      {/* Portaled to body: the Reveal wrapper's transform would otherwise trap `fixed`. */}
       {typeof document !== "undefined" &&
         createPortal(
           <AnimatePresence>
@@ -96,10 +98,11 @@ const Navbar = () => {
                 className="fixed inset-0 z-50 bg-linear-to-b from-sky-300 via-sky-100 to-white"
               >
                 <DitherBackground className="absolute inset-0 h-full w-full" />
-                <RockScene />
+                <RockScene closing={closing} onClosed={finishClose} />
                 <button
                   type="button"
-                  onClick={() => setMagic(false)}
+                  onClick={() => setClosing(true)}
+                  disabled={closing}
                   aria-label="Close 3D view"
                   className="absolute right-4 top-4 cursor-pointer px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground sm:right-6 sm:top-6 sm:text-lg"
                 >

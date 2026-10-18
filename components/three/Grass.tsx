@@ -20,10 +20,10 @@ const ROCK_MARGIN = 0.15;
 const GRID = 48;
 const SEED = 7;
 
-const BASE_COLOR = "#3f7a3c";
-const TIP_COLOR = "#b8de74";
+const BASE_COLOR = "#76642e";
+const TIP_COLOR = "#e2c46a";
 
-const vertexShader = /* glsl */ `
+const vertexShader = `
 uniform float time;
 varying vec2 vUv;
 varying vec3 vColor;
@@ -50,7 +50,7 @@ void main() {
 }
 `;
 
-const fragmentShader = (fade: boolean) => /* glsl */ `
+const fragmentShader = (fade: boolean) => `
 uniform vec3 baseColor;
 uniform vec3 tipColor;
 uniform sampler2D noiseMap;
@@ -61,7 +61,6 @@ ${fade ? EDGE_FADE_PARS : ""}
 void main() {
   ${fade ? "edgeFade();" : ""}
   vec3 color = mix(baseColor, tipColor, vColor.x);
-  // Static perlin variation across the field (the demo's cloud texture).
   color *= 0.85 + 0.3 * texture2D(noiseMap, vUv * 3.0).r;
   gl_FragColor = vec4(color, 1.0);
   #include <tonemapping_fragment>

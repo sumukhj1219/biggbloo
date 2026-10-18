@@ -18,11 +18,6 @@ const svgVariants = {
   hover: { x: 0, opacity: 1 },
 };
 
-// Full-height checker strip that slides in on the left. The parent must be a
-// motion element with `initial="rest" animate="rest" whileHover="hover"` and
-// `flex items-stretch`, so the variants propagate and the strip fills its height.
-// `fill` is the text-* color class; `className` sets the svg width, which should
-// be the parent's height * 3/4 to keep the cells square.
 const HoverChecker = ({ fill, className }: { fill: string; className: string }) => (
   <motion.span
     aria-hidden="true"

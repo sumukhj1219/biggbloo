@@ -1,19 +1,9 @@
 import * as THREE from "three";
 
-// Dithered dissolve towards the landscape's edge, so the ground reads as carrying
-// on into the distance instead of ending in a hard rim. Pixels are discarded with
-// the same 8x8 Bayer pattern and dot size as the DitherBackground sky, and the
-// boundary is broken up with perlin noise so it isn't a perfect circle.
-// Used by the landscape and the grass on it, both in the rock glTF's root space.
-
-// Fade from this fraction of the landscape radius out to its rim.
 const FADE_START = 0.65;
 const FADE_END = 1.0;
-// How far (fraction of radius) the noise pushes the boundary in/out.
 const FADE_NOISE = 0.25;
-// Perlin repeats per landscape radius.
 const FADE_NOISE_REPEAT = 0.6;
-// Matches DitherBackground's PIXEL (CSS px per dither dot).
 const DITHER_PIXEL = 3;
 
 export type EdgeFade = { center: THREE.Vector2; radius: number };
@@ -27,8 +17,7 @@ export const edgeFadeFromLandscape = (landscape: THREE.Mesh): EdgeFade => {
   };
 };
 
-// Expects a `noiseMap` sampler and `vFadePos` (root-space xz) in the shader.
-export const EDGE_FADE_PARS = /* glsl */ `
+export const EDGE_FADE_PARS = `
 uniform vec2 fadeCenter;
 uniform vec2 fadeRange;
 uniform float fadeNoise;

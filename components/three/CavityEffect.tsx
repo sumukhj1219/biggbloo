@@ -22,8 +22,6 @@ uniform float radius;
 uniform vec3 outlineColor;
 uniform float outlineWidth;
 
-// Objects drawn into the normal pass (layer 0). The pass clears to alpha 0, so
-// alpha marks them; objects on NO_CAVITY_LAYER (landscape, grass) aren't solid.
 bool isSolid(const in vec2 uv) {
   return texture2D(normalBuffer, uv).a > 0.5;
 }
@@ -33,29 +31,35 @@ vec3 readNormal(const in vec2 uv, const in vec3 fallback) {
   return normalize(texture2D(normalBuffer, uv).xyz * 2.0 - 1.0);
 }
 
+float outlineCoverage(const in vec2 uv) {
+  vec2 o = texelSize * outlineWidth;
+  vec2 g = texelSize * (outlineWidth + 1.5);
+  float coverage = 0.0;
+  bool near = false;
+  for (int i = 0; i < 12; i++) {
+    float a = float(i) * 0.5235988;
+    vec2 dir = vec2(cos(a), sin(a));
+    coverage = max(coverage, texture2D(inputBuffer, uv + dir * o).a);
+    near = near || isSolid(uv + dir * g);
+  }
+  return near ? coverage : 0.0;
+}
+
 void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth, out vec4 outputColor) {
   bool bg = depth >= 0.9999;
 
-  // Outline: sky pixels next to a solid object. A pixel that's sky here but solid
-  // in the normal pass was clipped away in the main render (the normal pass
-  // ignores clipping planes), so it stays sky.
-  if (bg) {
-    if (isSolid(uv)) {
-      outputColor = inputColor;
-      return;
-    }
-    vec2 o = texelSize * outlineWidth;
-    bool edge = isSolid(uv + vec2(o.x, 0.0)) || isSolid(uv - vec2(o.x, 0.0)) ||
-                isSolid(uv + vec2(0.0, o.y)) || isSolid(uv - vec2(0.0, o.y)) ||
-                isSolid(uv + o) || isSolid(uv - o) ||
-                isSolid(uv + vec2(o.x, -o.y)) || isSolid(uv + vec2(-o.x, o.y));
-    // Canvas background is transparent, so the outline needs its own alpha.
-    outputColor = edge ? vec4(outlineColor, 1.0) : inputColor;
+  if (bg && isSolid(uv)) {
+    outputColor = inputColor;
     return;
   }
 
-  // Non-solid surfaces (landscape, grass) blend in without cavity lines.
-  if (!isSolid(uv)) {
+  if (inputColor.a < 0.999) {
+    float c = outlineCoverage(uv);
+    outputColor = inputColor + vec4(outlineColor * c, c) * (1.0 - inputColor.a);
+    return;
+  }
+
+  if (bg || !isSolid(uv)) {
     outputColor = inputColor;
     return;
   }
@@ -92,10 +96,10 @@ class CavityEffectImpl extends Effect {
     valley = 0.5,
     radius = 1,
     outlineColor = "#913a60",
-    outlineWidth = 0.7,
+    outlineWidth = 1,
   }: CavityOptions = {}) {
     super("CavityEffect", fragmentShader, {
-      blendFunction: BlendFunction.NORMAL,
+      blendFunction: BlendFunction.SRC,
       attributes: EffectAttribute.DEPTH,
       uniforms: new Map<string, Uniform>([
         ["normalBuffer", new Uniform(normalBuffer)],
@@ -110,15 +114,9 @@ class CavityEffectImpl extends Effect {
   }
 }
 
-// Objects only on this layer are rendered, but get no cavity or outline: they're
-// left out of the normal pass (e.g. the landscape, which should blend in, and the
-// swaying grass, whose normal-pass pose wouldn't sway).
 export const NO_CAVITY_LAYER = 1;
 
-// Restricts the normal pass to objects on `layer` (null renders everything) and
-// clears it to alpha 0 so the shader can tell solid pixels from the rest.
 const setNormalPassLayer = (normalPass: NormalPass, layer: number | null) => {
-  // NormalPass keeps its RenderPass here at runtime; it's just missing from the types.
   const { renderPass } = normalPass as unknown as { renderPass: RenderPass };
   renderPass.getClearPass().overrideClearAlpha = layer === null ? 1 : 0;
   if (layer === null) {
@@ -126,7 +124,6 @@ const setNormalPassLayer = (normalPass: NormalPass, layer: number | null) => {
     return;
   }
   const selection = new Selection();
-  // The constructor only accepts layers 1-31, the setter allows the default layer 0.
   selection.layer = layer;
   renderPass.selection = selection;
 };
