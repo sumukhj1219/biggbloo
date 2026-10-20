@@ -55,6 +55,7 @@ export class ShutterType {
   constructor(
     private canvas: HTMLCanvasElement,
     private family: string = "sans-serif",
+    private accent: string = SKY,
   ) {
     this.ctx = canvas.getContext("2d");
     this.ok = !!this.ctx;
@@ -197,7 +198,7 @@ export class ShutterType {
     if (!ctx || !inner || this.taps.length < STRIPE_TAPS) return;
     const phase = phaseAt(f);
     const sky = isSky(f);
-    const ink = sky ? PAPER : SKY;
+    const ink = sky ? PAPER : this.accent;
     const W = this.canvas.width;
     const H = this.canvas.height;
 

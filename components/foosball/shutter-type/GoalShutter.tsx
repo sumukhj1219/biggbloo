@@ -2,9 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { ShutterType } from "./engine";
-import { FONT_VAR, FONT_WEIGHT } from "./params";
+import { FONT_VAR, FONT_WEIGHT, SKY } from "./params";
 
-export function GoalShutter() {
+// `accent` is the ink the GOAL text flashes in between its paper-coloured beats.
+export function GoalShutter({ accent = SKY }: { accent?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -23,7 +24,7 @@ export function GoalShutter() {
       const fam = getComputedStyle(probe).fontFamily || "sans-serif";
       document.body.removeChild(probe);
 
-      engine = new ShutterType(canvas, fam);
+      engine = new ShutterType(canvas, fam, accent);
       if (!engine.ok) return;
       if (reduced) engine.renderStill();
       else engine.start();
@@ -50,7 +51,7 @@ export function GoalShutter() {
       engine?.destroy();
       engine = null;
     };
-  }, []);
+  }, [accent]);
 
   return (
     <div aria-hidden className="relative aspect-video w-full overflow-hidden">

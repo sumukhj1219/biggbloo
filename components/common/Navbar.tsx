@@ -7,6 +7,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { amatic } from "@/lib/fonts";
+import { isMuted, setMuted } from "@/lib/sounds";
 import HoverChecker from "@/components/ui/HoverChecker";
 import DitherBackground from "@/components/ui/DitherBackground";
 
@@ -23,6 +25,11 @@ const Navbar = () => {
   const pathname = usePathname();
   const [magic, setMagic] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [muted, setMutedState] = useState(isMuted);
+  const toggleSound = () => {
+    setMuted(!muted);
+    setMutedState(!muted);
+  };
   const finishClose = useCallback(() => {
     setClosing(false);
     setMagic(false);
@@ -99,15 +106,34 @@ const Navbar = () => {
               >
                 <DitherBackground className="absolute inset-0 h-full w-full" />
                 <RockScene closing={closing} onClosed={finishClose} />
-                <button
-                  type="button"
-                  onClick={() => setClosing(true)}
-                  disabled={closing}
-                  aria-label="Close 3D view"
-                  className="absolute right-4 top-4 cursor-pointer px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground sm:right-6 sm:top-6 sm:text-lg"
+                <div
+                  className={cn(
+                    amatic.className,
+                    "pointer-events-none absolute inset-x-0 top-0 mx-auto flex max-w-5xl flex-col items-end px-4 pt-4 text-2xl sm:px-6 sm:pt-6 sm:text-3xl",
+                  )}
                 >
-                  Close
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setClosing(true)}
+                    disabled={closing}
+                    aria-label="Close 3D view"
+                    className="pointer-events-auto cursor-pointer px-2 py-1 text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleSound}
+                    aria-pressed={!muted}
+                    aria-label={muted ? "Turn sound on" : "Turn sound off"}
+                    className={cn(
+                      "pointer-events-auto cursor-pointer px-2 py-1 text-muted-foreground transition-colors hover:text-foreground",
+                      muted && "line-through decoration-2",
+                    )}
+                  >
+                    Sound
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>,

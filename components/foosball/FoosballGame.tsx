@@ -25,7 +25,8 @@ const PHYSICS_WIDTH = 800;
 const PHYSICS_HEIGHT = 400;
 const ASPECT = PHYSICS_WIDTH / PHYSICS_HEIGHT;
 
-const WALL_THICKNESS = 20;
+// Thick walls so a hard kick can't tunnel the ball through them in a single physics step.
+const WALL_THICKNESS = 80;
 const GOAL_HEIGHT = 130;
 const BALL_RADIUS = 8;
 
@@ -54,6 +55,256 @@ const AI_KICK_COOLDOWN_MS = 500;
 const DROP_Y = 16;
 const DROP_SPEED = 6.5;
 const MIN_BALL_SPEED = 0.8;
+const MAX_BALL_SPEED = 16;
+
+const OUTFIELD_PIXEL = 3;
+// How many grass cells reach in over the pitch edge, so the two blend instead of meeting at a line.
+const OUTFIELD_OVERLAP = 4;
+const OUTFIELD_GREENS = ["#4a5409", "#5E680D", "#6b7616", "#7a8622", "#86912C"];
+const OUTFIELD_BLADE = "#9aa63a";
+
+// Stable per-cell noise so the grass doesn't reshuffle on every resize.
+const cellNoise = (x: number, y: number, seed: number) => {
+  let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(seed, 2147483647);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+};
+
+type FringeView = { canvas: HTMLCanvasElement; x: number; y: number; w: number; h: number };
+
+// Paints pixel grass around the pitch that dissolves the further it gets from the touchline.
+// The ragged fringe of grass that reaches in over the pitch edge goes to `fringe`, which the
+// game draws under its players so it never hides the ball.
+const drawOutfield = (
+  canvas: HTMLCanvasElement,
+  fringe: HTMLCanvasElement,
+  frame: HTMLElement,
+  pitch: HTMLElement,
+): FringeView | null => {
+  const cols = Math.ceil(frame.clientWidth / OUTFIELD_PIXEL);
+  const rows = Math.ceil(frame.clientHeight / OUTFIELD_PIXEL);
+  const layer = (c: HTMLCanvasElement) => {
+    c.width = cols;
+    c.height = rows;
+    const g = c.getContext("2d");
+    g?.clearRect(0, 0, cols, rows);
+    return g;
+  };
+  canvas.style.width = `${cols * OUTFIELD_PIXEL}px`;
+  canvas.style.height = `${rows * OUTFIELD_PIXEL}px`;
+  const octx = layer(canvas);
+  const fctx = layer(fringe);
+  if (!octx || !fctx) return null;
+
+  const left = pitch.offsetLeft / OUTFIELD_PIXEL;
+  const top = pitch.offsetTop / OUTFIELD_PIXEL;
+  const right = (pitch.offsetLeft + pitch.offsetWidth) / OUTFIELD_PIXEL;
+  const bottom = (pitch.offsetTop + pitch.offsetHeight) / OUTFIELD_PIXEL;
+  const band = Math.max(1, Math.min(left, cols - right, rows - bottom));
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const dx = Math.max(left - x - 0.5, x + 0.5 - right, 0);
+      const dy = Math.max(top - y - 0.5, y + 0.5 - bottom, 0);
+      const t = Math.hypot(dx, dy) / band;
+      // Mix fine and clumpy noise so the edge breaks up into patches, not static.
+      const n = 0.65 * cellNoise(x, y, 1) + 0.35 * cellNoise(x >> 2, y >> 2, 2);
+      let target = octx;
+      if (t === 0) {
+        const inset = Math.min(x + 0.5 - left, right - x - 0.5, y + 0.5 - top, bottom - y - 0.5);
+        // Cells straddling the pitch edge get solid grass underneath, so no page shows
+        // through the sub-cell gap between the outfield and the pitch.
+        if (inset < 1) {
+          const shade = Math.floor(cellNoise(x, y, 4) * OUTFIELD_GREENS.length);
+          octx.fillStyle = OUTFIELD_GREENS[shade];
+          octx.fillRect(x, y, 1, 1);
+        }
+        const reach = inset / OUTFIELD_OVERLAP;
+        if (reach >= 1 || n < 0.2 + 0.8 * Math.pow(reach, 0.7)) continue;
+        target = fctx;
+      } else if (t >= 1 || n < Math.pow(t, 0.8)) {
+        continue;
+      }
+      const shade = Math.floor(cellNoise(x, y, 4) * OUTFIELD_GREENS.length);
+      target.fillStyle = cellNoise(x, y, 3) < 0.06 ? OUTFIELD_BLADE : OUTFIELD_GREENS[shade];
+      target.fillRect(x, y, 1, 1);
+    }
+  }
+
+  return { canvas: fringe, x: left, y: top, w: right - left, h: bottom - top };
+};
+
+// Stadium light: sun spills in from the top-left corner over the stand's roof line, the rest of
+// the pitch sits in the stand's shadow, and a cloud shadow drifts across every so often.
+const SUN_EDGE = 0.42; // where the roof shadow's edge falls, along the corner-to-corner diagonal
+const SUN_SOFTNESS = 0.07;
+const SHADE_TINT = "#b4bccb"; // multiplied over the shaded part: darker and a touch cooler
+const SUN_WARMTH = "rgba(255, 228, 170, 0.22)";
+const SUN_GLOW = "rgba(255, 240, 205, 0.35)";
+const CLOUD_PERIOD_MS = 30000;
+const SPRITE_SHADOW = { x: 3.5, y: 3.5 };
+const VIGNETTE = "#c9cfd8";
+const CLOUD_ALPHA = 0.55;
+const LIGHT_RES = 2;
+
+// The shadow/sun split never changes, so it's painted once into an offscreen light map.
+const makeLightMaps = () => {
+  const w = PHYSICS_WIDTH * LIGHT_RES;
+  const h = PHYSICS_HEIGHT * LIGHT_RES;
+  const layer = () => {
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    return { c, g: c.getContext("2d") };
+  };
+  // Gradient across the diagonal from the sunny corner, with a soft roof-shadow edge.
+  const diagonal = (g: CanvasRenderingContext2D, lit: string, shade: string) => {
+    const grad = g.createLinearGradient(0, 0, w * 0.75, h);
+    grad.addColorStop(0, lit);
+    grad.addColorStop(SUN_EDGE - SUN_SOFTNESS, lit);
+    grad.addColorStop(SUN_EDGE + SUN_SOFTNESS, shade);
+    grad.addColorStop(1, shade);
+    return grad;
+  };
+
+  const shade = layer();
+  if (shade.g) {
+    shade.g.fillStyle = diagonal(shade.g, "#ffffff", SHADE_TINT);
+    shade.g.fillRect(0, 0, w, h);
+    // Broadcast-style falloff: the touchlines and corners sit a touch darker than the middle.
+    const vignette = shade.g.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, w * 0.62);
+    vignette.addColorStop(0, "#ffffff");
+    vignette.addColorStop(1, VIGNETTE);
+    shade.g.globalCompositeOperation = "multiply";
+    shade.g.fillStyle = vignette;
+    shade.g.fillRect(0, 0, w, h);
+  }
+
+  const sun = layer();
+  if (sun.g) {
+    sun.g.fillStyle = diagonal(sun.g, SUN_WARMTH, "rgba(255, 228, 170, 0)");
+    sun.g.fillRect(0, 0, w, h);
+    // Light bloom spilling from beyond the corner; the sun itself stays off-pitch.
+    const glow = sun.g.createRadialGradient(-w * 0.05, -h * 0.1, 0, -w * 0.05, -h * 0.1, w * 0.45);
+    glow.addColorStop(0, SUN_GLOW);
+    glow.addColorStop(1, "rgba(255, 240, 205, 0)");
+    sun.g.fillStyle = glow;
+    sun.g.fillRect(0, 0, w, h);
+  }
+
+  // A lumpy cloud shadow built from overlapping soft puffs.
+  const cloud = document.createElement("canvas");
+  cloud.width = PHYSICS_WIDTH * 0.7 * LIGHT_RES;
+  cloud.height = PHYSICS_HEIGHT * 0.8 * LIGHT_RES;
+  const cg = cloud.getContext("2d");
+  if (cg) {
+    const puffs = [
+      [0.3, 0.5, 0.3],
+      [0.5, 0.4, 0.34],
+      [0.7, 0.55, 0.28],
+      [0.45, 0.65, 0.26],
+      [0.6, 0.3, 0.22],
+    ];
+    puffs.forEach(([px, py, pr]) => {
+      const x = px * cloud.width;
+      const y = py * cloud.height;
+      const r = pr * cloud.width;
+      const puff = cg.createRadialGradient(x, y, 0, x, y, r);
+      puff.addColorStop(0, "rgba(20, 28, 40, 0.55)");
+      puff.addColorStop(1, "rgba(20, 28, 40, 0)");
+      cg.fillStyle = puff;
+      cg.fillRect(0, 0, cloud.width, cloud.height);
+    });
+  }
+
+  return { shade: shade.c, sun: sun.c, cloud };
+};
+
+// The turf is static, so it's painted once: mown stripes with a cross-cut, uneven colour from
+// patchy growth, scuffed goalmouths and spots where players stand most, and fine grain.
+const STRIPE_COUNT = 10;
+const STRIPE_COLORS = ["#86912C", "#5E680D"];
+const CROSS_CUT_BANDS = 6;
+const WEAR = "rgba(140, 118, 64, 0.5)";
+
+const makeTurf = () => {
+  const turf = document.createElement("canvas");
+  turf.width = PHYSICS_WIDTH * LIGHT_RES;
+  turf.height = PHYSICS_HEIGHT * LIGHT_RES;
+  const g = turf.getContext("2d");
+  if (!g) return turf;
+  g.scale(LIGHT_RES, LIGHT_RES);
+  const W = PHYSICS_WIDTH;
+  const H = PHYSICS_HEIGHT;
+
+  const stripeW = W / STRIPE_COUNT;
+  for (let i = 0; i < STRIPE_COUNT; i++) {
+    g.fillStyle = STRIPE_COLORS[i % 2];
+    g.fillRect(i * stripeW, 0, stripeW, H);
+  }
+  // Mowing the other way too leaves a faint checkerboard across the stripes.
+  const bandH = H / CROSS_CUT_BANDS;
+  for (let i = 0; i < CROSS_CUT_BANDS; i++) {
+    g.fillStyle = i % 2 === 0 ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.04)";
+    g.fillRect(0, i * bandH, W, bandH);
+  }
+
+  const blot = (x: number, y: number, r: number, color: string) => {
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, color.replace(/[\d.]+\)$/, "0)"));
+    g.fillStyle = grad;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  };
+  // Patchy growth: broad, faint light and dark blotches.
+  for (let i = 0; i < 70; i++) {
+    const light = Math.random() < 0.5;
+    blot(
+      Math.random() * W,
+      Math.random() * H,
+      20 + Math.random() * 60,
+      light ? "rgba(190, 200, 90, 0.07)" : "rgba(30, 45, 5, 0.08)",
+    );
+  }
+
+  // Worn turf where play concentrates, with scattered bare specks around each patch.
+  const midY = H / 2;
+  const wear = (x: number, y: number, rx: number, ry: number, specks: number) => {
+    g.save();
+    g.translate(x, y);
+    g.scale(1, ry / rx);
+    blot(0, 0, rx, WEAR);
+    g.restore();
+    for (let i = 0; i < specks; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const d = Math.sqrt(Math.random());
+      g.fillStyle = `rgba(150, 125, 70, ${0.15 + Math.random() * 0.25})`;
+      g.fillRect(x + Math.cos(a) * d * rx, y + Math.sin(a) * d * ry, 1 + Math.random(), 1 + Math.random());
+    }
+  };
+  wear(14, midY, 34, 70, 140);
+  wear(W - 14, midY, 34, 70, 140);
+  wear(PENALTY_SPOT_X, midY, 10, 10, 25);
+  wear(W - PENALTY_SPOT_X, midY, 10, 10, 25);
+  wear(W / 2, midY, 22, 22, 60);
+
+  // Fine grain so the grass doesn't read as flat paint.
+  const grain = g.createImageData(turf.width, turf.height);
+  for (let i = 0; i < grain.data.length; i += 4) {
+    const v = Math.random() * 255;
+    grain.data[i] = grain.data[i + 1] = grain.data[i + 2] = v;
+    grain.data[i + 3] = 255;
+  }
+  const grainLayer = document.createElement("canvas");
+  grainLayer.width = turf.width;
+  grainLayer.height = turf.height;
+  grainLayer.getContext("2d")?.putImageData(grain, 0, 0);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalAlpha = 0.1;
+  g.globalCompositeOperation = "overlay";
+  g.drawImage(grainLayer, 0, 0);
+  return turf;
+};
 
 const TEAM_A_COLOR = "#3b6ef2";
 const TEAM_B_COLOR = "#e6483f";
@@ -106,15 +357,56 @@ const easeOutBack = (t: number) => {
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 };
 
+type Team = "a" | "b";
+
+const Scoreboard = ({ score, elapsed }: { score: Record<Team, number>; elapsed: number }) =>
+  SCOREBOARD_SEGMENTS.map((seg, i) => (
+    <div
+      key={seg.key}
+      className="relative shrink-0"
+      style={{ width: seg.width, height: SCOREBOARD_HEIGHT, marginLeft: i === 0 ? 0 : -1 }}
+    >
+      <Image src={seg.src} alt="" width={seg.width} height={SCOREBOARD_HEIGHT} className="block" />
+      <span
+        className={`${anton.className} absolute inset-0 flex items-center justify-center leading-none tracking-wide tabular-nums`}
+        style={{ color: seg.color, fontSize: seg.fontSize }}
+      >
+        {seg.key === "you-text" && "YOU"}
+        {seg.key === "you-scorecard" && score.a}
+        {seg.key === "timer" && `${String(elapsed).padStart(2, "0")}:00`}
+        {seg.key === "ai-scorecard" && score.b}
+        {seg.key === "ai-text" && "AI"}
+      </span>
+    </div>
+  ));
+
 const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState({ a: 0, b: 0 });
   const [started, setStarted] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [goalPulse, setGoalPulse] = useState<number | null>(null);
+  const [goalPulse, setGoalPulse] = useState<{ id: number; by: Team } | null>(null);
   const goalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gameApiRef = useRef<{ start: () => void; pause: () => void } | null>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const outfieldRef = useRef<HTMLCanvasElement>(null);
+  const fringeViewRef = useRef<FringeView | null>(null);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    const outfield = outfieldRef.current;
+    const pitch = containerRef.current;
+    if (!frame || !outfield || !pitch) return;
+    const fringe = document.createElement("canvas");
+    const redraw = () => {
+      fringeViewRef.current = drawOutfield(outfield, fringe, frame, pitch);
+    };
+    const observer = new ResizeObserver(redraw);
+    observer.observe(frame);
+    redraw();
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!started || elapsed >= MATCH_SECONDS) {
@@ -125,8 +417,11 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
     return () => clearTimeout(id);
   }, [started, elapsed]);
 
+  const finished = started && elapsed >= MATCH_SECONDS;
+
   const handleReady = () => {
     setStarted(true);
+    setScore({ a: 0, b: 0 });
     setElapsed(0);
     gameApiRef.current?.start();
   };
@@ -138,23 +433,8 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const grainTile = document.createElement("canvas");
-    grainTile.width = 64;
-    grainTile.height = 64;
-    const grainCtx = grainTile.getContext("2d");
-    let grainPattern: CanvasPattern | null = null;
-    if (grainCtx) {
-      const imageData = grainCtx.createImageData(64, 64);
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        const v = Math.floor(Math.random() * 255);
-        imageData.data[i] = v;
-        imageData.data[i + 1] = v;
-        imageData.data[i + 2] = v;
-        imageData.data[i + 3] = 255;
-      }
-      grainCtx.putImageData(imageData, 0, 0);
-      grainPattern = ctx.createPattern(grainTile, "repeat");
-    }
+    const turf = makeTurf();
+    const lightMaps = makeLightMaps();
 
     const runningRef = { current: false };
 
@@ -217,9 +497,8 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
       Matter.Body.setAngularVelocity(ball, 0);
     };
 
-    const triggerGoalFlash = () => {
-      const id = Date.now();
-      setGoalPulse(id);
+    const triggerGoalFlash = (by: Team) => {
+      setGoalPulse({ id: Date.now(), by });
       if (goalTimeoutRef.current) clearTimeout(goalTimeoutRef.current);
       goalTimeoutRef.current = setTimeout(() => setGoalPulse(null), GOAL_ANIM_TOTAL_MS);
     };
@@ -305,7 +584,10 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
       const vx = ball.velocity.x;
       const vy = ball.velocity.y;
       const speed = Math.hypot(vx, vy);
-      if (speed < MIN_BALL_SPEED) {
+      if (speed > MAX_BALL_SPEED) {
+        const scale = MAX_BALL_SPEED / speed;
+        Matter.Body.setVelocity(ball, { x: vx * scale, y: vy * scale });
+      } else if (speed < MIN_BALL_SPEED) {
         if (speed < 0.001) {
           const angle = Math.random() * Math.PI * 2;
           Matter.Body.setVelocity(ball, {
@@ -318,13 +600,20 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
         }
       }
 
-      if (ball.position.x < -BALL_RADIUS * 2) {
+      // Anything that escapes the pitch other than through a goal mouth is put back in play.
+      const out = BALL_RADIUS * 2;
+      const { x: bx, y: by } = ball.position;
+      const inGoalMouth = Math.abs(by - PHYSICS_HEIGHT / 2) < GOAL_HEIGHT / 2 + out;
+      const offPitch = by < -out || by > PHYSICS_HEIGHT + out || bx < -out || bx > PHYSICS_WIDTH + out;
+      if (offPitch && !inGoalMouth) {
+        dropBall();
+      } else if (ball.position.x < -BALL_RADIUS * 2) {
         setScore((s) => ({ ...s, b: s.b + 1 }));
-        triggerGoalFlash();
+        triggerGoalFlash("b");
         dropBall();
       } else if (ball.position.x > PHYSICS_WIDTH + BALL_RADIUS * 2) {
         setScore((s) => ({ ...s, a: s.a + 1 }));
-        triggerGoalFlash();
+        triggerGoalFlash("a");
         dropBall();
       }
 
@@ -335,21 +624,7 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
     const render = () => {
       ctx.clearRect(0, 0, PHYSICS_WIDTH, PHYSICS_HEIGHT);
 
-      const STRIPE_COUNT = 10;
-      const stripeW = PHYSICS_WIDTH / STRIPE_COUNT;
-      for (let i = 0; i < STRIPE_COUNT; i++) {
-        ctx.fillStyle = i % 2 === 0 ? "#86912C" : "#5E680D";
-        ctx.fillRect(i * stripeW, 0, stripeW, PHYSICS_HEIGHT);
-      }
-
-      if (grainPattern) {
-        ctx.save();
-        ctx.globalAlpha = 0.12;
-        ctx.globalCompositeOperation = "overlay";
-        ctx.fillStyle = grainPattern;
-        ctx.fillRect(0, 0, PHYSICS_WIDTH, PHYSICS_HEIGHT);
-        ctx.restore();
-      }
+      ctx.drawImage(turf, 0, 0, PHYSICS_WIDTH, PHYSICS_HEIGHT);
 
       ctx.strokeStyle = "rgba(255,255,255,0.55)";
       ctx.lineWidth = 2;
@@ -451,6 +726,14 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
           ctx.stroke();
         });
       };
+      const fringe = fringeViewRef.current;
+      if (fringe && fringe.w > 0 && fringe.h > 0) {
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(fringe.canvas, fringe.x, fringe.y, fringe.w, fringe.h, 0, 0, PHYSICS_WIDTH, PHYSICS_HEIGHT);
+        ctx.restore();
+      }
+
       drawGoal(1);
       drawGoal(-1);
 
@@ -468,6 +751,37 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
         ctx.stroke();
         ctx.restore();
       });
+
+      // Contact shadows for players and ball, cast away from the sun in the top-left corner.
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      rodStates.forEach((rod) => {
+        rod.config.playerYs.forEach((baseY) => {
+          ctx.beginPath();
+          ctx.ellipse(
+            rod.config.x + SPRITE_SHADOW.x,
+            baseY + rod.slideOffset + SPRITE_SHADOW.y,
+            PADDLE_WIDTH / 2 + 2,
+            PADDLE_WIDTH / 2 + 1,
+            Math.PI / 4,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        });
+      });
+      ctx.beginPath();
+      ctx.ellipse(
+        ball.position.x + SPRITE_SHADOW.x,
+        ball.position.y + SPRITE_SHADOW.y,
+        BALL_RADIUS + 1.5,
+        BALL_RADIUS,
+        Math.PI / 4,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+      ctx.restore();
 
       rodStates.forEach((rod) => {
         const color = rod.config.team === "a" ? TEAM_A_COLOR : TEAM_B_COLOR;
@@ -531,6 +845,28 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
       });
       ctx.restore();
 
+      ctx.restore();
+
+      drawLighting(performance.now());
+    };
+
+    // Lighting goes over everything, players and ball included, so they share the pitch's light.
+    const drawLighting = (now: number) => {
+      ctx.save();
+      ctx.globalCompositeOperation = "multiply";
+      ctx.drawImage(lightMaps.shade, 0, 0, PHYSICS_WIDTH, PHYSICS_HEIGHT);
+      ctx.globalCompositeOperation = "screen";
+      ctx.drawImage(lightMaps.sun, 0, 0, PHYSICS_WIDTH, PHYSICS_HEIGHT);
+
+      // One cloud crosses per period, drifting left to right and slightly down.
+      const cw = lightMaps.cloud.width / LIGHT_RES;
+      const ch = lightMaps.cloud.height / LIGHT_RES;
+      const t = (now % CLOUD_PERIOD_MS) / CLOUD_PERIOD_MS;
+      const cx = -cw + t * (PHYSICS_WIDTH + cw);
+      const cy = -ch * 0.35 + t * PHYSICS_HEIGHT * 0.3;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = CLOUD_ALPHA;
+      ctx.drawImage(lightMaps.cloud, cx, cy, cw, ch);
       ctx.restore();
     };
 
@@ -599,7 +935,7 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter") triggerGoalFlash();
+      if (e.key === "Enter") triggerGoalFlash(e.shiftKey ? "b" : "a");
     };
 
     canvas.addEventListener("pointerdown", handlePointerDown);
@@ -623,79 +959,84 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
 
   return (
     <div className="w-full" ref={ref}>
-      <div className="relative flex h-[18px] justify-center sm:h-6">
-        {!started ? (
-          <button
-            onClick={handleReady}
-            className={`${anton.className} relative z-10 flex origin-top scale-75 items-center px-5 text-sm uppercase tracking-wide text-black transition-opacity hover:opacity-90 sm:scale-100 sm:text-lg`}
-            style={{
-              height: SCOREBOARD_HEIGHT,
-              backgroundColor: "#2ecc16",
-              border: "2px solid #fff",
-              boxShadow: "inset 0 2px 5px rgba(0,0,0,0.4)",
-              clipPath: "polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%)",
-            }}
-          >
-            Ready
-          </button>
-        ) : (
-          <div className="absolute inset-x-0 top-0 z-0 mx-auto flex w-fit origin-top scale-75 sm:scale-100">
-            <motion.div
-              initial={{ y: SCOREBOARD_HEIGHT }}
-              animate={{ y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="flex shadow"
+      <div ref={frameRef} className="relative overflow-hidden p-6 sm:p-10">
+        <canvas
+          ref={outfieldRef}
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0"
+          style={{ imageRendering: "pixelated" }}
+        />
+        <div className="relative flex h-[18px] justify-center sm:h-6">
+          {!started || finished ? (
+            <button
+              onClick={handleReady}
+              className={`${anton.className} relative z-10 flex origin-top scale-75 items-center px-5 text-sm uppercase tracking-wide text-black transition-opacity hover:opacity-90 sm:scale-100 sm:text-lg`}
+              style={{
+                height: SCOREBOARD_HEIGHT,
+                backgroundColor: "#2ecc16",
+                border: "2px solid #fff",
+                boxShadow: "inset 0 2px 5px rgba(0,0,0,0.4)",
+                clipPath: "polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%)",
+              }}
             >
-              {SCOREBOARD_SEGMENTS.map((seg, i) => (
-                <div
-                  key={seg.key}
-                  className="relative shrink-0"
-                  style={{ width: seg.width, height: SCOREBOARD_HEIGHT, marginLeft: i === 0 ? 0 : -1 }}
-                >
-                  <Image
-                    src={seg.src}
-                    alt=""
-                    width={seg.width}
-                    height={SCOREBOARD_HEIGHT}
-                    className="block"
-                  />
-                  <span
-                    className={`${anton.className} absolute inset-0 flex items-center justify-center leading-none tracking-wide tabular-nums`}
-                    style={{ color: seg.color, fontSize: seg.fontSize }}
-                  >
-                    {seg.key === "you-text" && "YOU"}
-                    {seg.key === "you-scorecard" && score.a}
-                    {seg.key === "timer" && `${String(elapsed).padStart(2, "0")}:00`}
-                    {seg.key === "ai-scorecard" && score.b}
-                    {seg.key === "ai-text" && "AI"}
-                  </span>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-        )}
-      </div>
-      <div
-        ref={containerRef}
-        className="relative z-10 -mt-px w-full overflow-hidden rounded-lg shadow-sm ring-1 ring-black/10"
-      >
-        <canvas ref={canvasRef} className="block touch-none" />
-        <AnimatePresence>
-          {goalPulse !== null && (
-            <motion.div
-              key={goalPulse}
-              className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-6 sm:p-10"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="w-full max-w-xs sm:max-w-sm">
-                <GoalShutter />
-              </div>
-            </motion.div>
+              {finished ? "Restart" : "Ready"}
+            </button>
+          ) : (
+            <div className="absolute inset-x-0 top-0 z-0 mx-auto flex w-fit origin-top scale-75 sm:scale-100">
+              <motion.div
+                initial={{ y: SCOREBOARD_HEIGHT }}
+                animate={{ y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="flex shadow"
+              >
+                <Scoreboard score={score} elapsed={elapsed} />
+              </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </div>
+        <div
+          ref={containerRef}
+          className="relative z-10 -mt-px w-full overflow-hidden"
+        >
+          <canvas ref={canvasRef} className="block touch-none" />
+          <AnimatePresence>
+            {goalPulse !== null && (
+              <motion.div
+                key={goalPulse.id}
+                className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-6 sm:p-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="w-full max-w-xs sm:max-w-sm">
+                  <GoalShutter accent={goalPulse.by === "b" ? TEAM_B_COLOR : undefined} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {/* Full time: the pitch blurs out and the final score rises slowly into the centre. */}
+          <AnimatePresence>
+            {finished && (
+              <motion.div
+                className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+                initial={{ backdropFilter: "blur(0px)", backgroundColor: "rgba(0,0,0,0)" }}
+                animate={{ backdropFilter: "blur(4px)", backgroundColor: "rgba(0,0,0,0.12)" }}
+                exit={{ backdropFilter: "blur(0px)", backgroundColor: "rgba(0,0,0,0)", opacity: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
+                <motion.div
+                  initial={{ y: 160, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 1.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex origin-center scale-100 shadow-lg sm:scale-150"
+                >
+                  <Scoreboard score={score} elapsed={elapsed} />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
       <p className="mt-2 text-center text-xs text-muted-foreground/60 sm:text-sm">
         Drag a rod to slide it, tap to kick

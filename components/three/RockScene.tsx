@@ -14,8 +14,10 @@ import Cavity, { NO_CAVITY_LAYER } from "./CavityEffect";
 import Grass, { GRASS_NAME } from "./Grass";
 import RockDecals, { DECAL_NAME } from "./RockDecals";
 import Wind from "./Wind";
-import SideboardNav, { FrameHint } from "./SideboardNav";
+import SideboardNav, { FrameHint, INK } from "./SideboardNav";
 import MonolithTitle from "./MonolithTitle";
+import Clock, { CLOCK_FACE, CLOCK_PARTS } from "./Clock";
+import { fadeOutSound, getSound, playSoundAfter, soundVolume } from "@/lib/sounds";
 import {
   EDGE_FADE_PARS,
   edgeFadeFromLandscape,
@@ -42,12 +44,14 @@ const WOOD_PARTS: Record<string, [color: string, grain: string, direction: THREE
   Holder: ["#8a5a34", "#7d502d", GRAIN_ALONG],
   "Button-Left": ["#86634a", "#7b5a42", GRAIN_ACROSS],
   "Button-Right": ["#86634a", "#7b5a42", GRAIN_ACROSS],
+  [CLOCK_FACE]: ["#f0dcba", "#e6cfa8", GRAIN_ALONG_WIDE],
 };
 
 const METAL_PARTS: Record<string, [color: string, noise: string]> = {
   Gear: ["#d9a84e", "#c99a43"],
   "Worm Gear": ["#8d939e", "#7f8590"],
   Worm_Gear: ["#8d939e", "#7f8590"],
+  ...CLOCK_PARTS,
 };
 
 const isRotorPart = (name: string) =>
@@ -128,6 +132,11 @@ const tween = (
   const target = new THREE.Vector3(to.x ?? from.x, to.y ?? from.y, to.z ?? from.z);
   return animate(0, 1, { ...options, onUpdate: (t) => vector.lerpVectors(from, target, t) });
 };
+
+const CRANK_DELAY = 0.75;
+const CRANK_FADE_MS = 300;
+const BG_FADE_IN_MS = 2000;
+const BG_FADE_OUT_MS = 1200;
 
 const BUILD_EASE = [0.22, 1, 0.36, 1] as const;
 const BUILD = {
@@ -231,7 +240,26 @@ const groupMonolith = (scene: THREE.Object3D) => {
   return group;
 };
 
-type Spin = { target: number | null; controls: AnimationPlaybackControls | null };
+type Spin = {
+  target: number | null;
+  controls: AnimationPlaybackControls | null;
+  sound: number | null;
+};
+
+const GEAR_FADE_MS = 250;
+
+// Each turn restarts the gear grind; it fades out once the monolith settles.
+const startGear = (spin: Spin) => {
+  const gear = getSound("gear");
+  if (spin.sound !== null) gear.stop(spin.sound);
+  spin.sound = gear.play();
+};
+
+const stopGear = (spin: Spin, fade = GEAR_FADE_MS) => {
+  if (spin.sound === null) return;
+  fadeOutSound("gear", spin.sound, fade);
+  spin.sound = null;
+};
 
 const resetSpin = (group: THREE.Object3D) => {
   group.rotation.y = DEFAULT_SPIN;
@@ -253,11 +281,16 @@ const snapSpin = (group: THREE.Object3D, spin: Spin, dir: number) => {
 const animateSpin = (group: THREE.Object3D, spin: Spin, target: number) => {
   spin.target = target;
   spin.controls?.stop();
-  spin.controls = animate(group.rotation.y, spin.target, {
+  startGear(spin);
+  const controls = animate(group.rotation.y, spin.target, {
     type: "spring",
     bounce: 0.25,
     duration: 0.7,
     onUpdate: (y) => (group.rotation.y = y),
+  });
+  spin.controls = controls;
+  controls.finished.then(() => {
+    if (spin.controls === controls) stopGear(spin);
   });
 };
 
@@ -292,6 +325,8 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
 
   const underground = monolith ? [...rotor, monolith] : rotor;
   const unclip = groundClip(root, underground);
+  // The crank grinds from shortly after the build starts until the monolith is fully up.
+  const stopCrank = playSoundAfter("crank", CRANK_DELAY);
   const rises = underground.map((obj) => {
     const index = rotor.indexOf(obj);
     const step =
@@ -305,7 +340,10 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
     controls.push(rise);
     return rise.finished;
   });
-  Promise.all(rises).then(unclip);
+  Promise.all(rises).then(() => {
+    unclip();
+    stopCrank(CRANK_FADE_MS);
+  });
   smallRocks.forEach((rock, i) => {
     const { x, y, z } = rock.scale;
     const delay = BUILD.smallRocks.delay + i * BUILD.smallRocks.stagger;
@@ -343,6 +381,7 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
   const stop = () => {
     timers.forEach((t) => window.clearTimeout(t));
     controls.forEach((c) => c.stop());
+    stopCrank(0);
   };
   const restore = () => {
     stop();
@@ -406,9 +445,13 @@ const playTeardown = (
   shrink(switchBox, TEARDOWN.switchBox);
   shrink(smallRocks, TEARDOWN.smallRocks);
   const unclip = groundClip(root, monolith ? [...rotor, monolith] : rotor);
+  const stopCrank = playSoundAfter("crank", CRANK_DELAY);
+  const sinks: Promise<unknown>[] = [];
   const sink = (obj: THREE.Object3D, step: { delay: number; duration: number }) => {
     const home = homeOf(obj).y;
-    hideAfter(obj, tween(obj.position, { y: home - sinkDepth(obj, home) }, { ...ease, ...step }));
+    const c = tween(obj.position, { y: home - sinkDepth(obj, home) }, { ...ease, ...step });
+    hideAfter(obj, c);
+    sinks.push(c.finished);
   };
   if (monolith) sink(monolith, TEARDOWN.monolith);
   [...rotor].reverse().forEach((obj, i) =>
@@ -425,10 +468,12 @@ const playTeardown = (
   }
 
   let cancelled = false;
+  Promise.all(sinks).then(() => !cancelled && stopCrank(CRANK_FADE_MS));
   Promise.all(controls.map((c) => c.finished)).then(() => !cancelled && onDone());
   return () => {
     cancelled = true;
     controls.forEach((c) => c.stop());
+    stopCrank(0);
     unclip();
   };
 };
@@ -502,6 +547,13 @@ const Rock = ({ closing, onClosed }: RockProps) => {
         createNoiseMaterial(color, noise, perlin, noiseScale),
       ]),
     ]);
+    // The clock is built from flat cards, so every part needs both sides to show from behind.
+    [CLOCK_FACE, ...Object.keys(CLOCK_PARTS)].forEach(
+      (name) => (partMaterials[name].side = THREE.DoubleSide),
+    );
+    // The pink-tinted lights warm everything they touch; a little self-glow in the sign ink
+    // keeps the dial reading as the same cream as the 3D text, which is unlit.
+    (partMaterials[CLOCK_FACE] as THREE.MeshLambertMaterial).emissive.set(INK).multiplyScalar(0.35);
     scene.traverse((obj) => {
       if (
         obj instanceof THREE.Mesh &&
@@ -524,7 +576,7 @@ const Rock = ({ closing, onClosed }: RockProps) => {
   }, [scene, perlin, radius, edge, dpr]);
 
   const spinGroup = useMemo(() => groupMonolith(scene), [scene]);
-  const spin = useRef<Spin>({ target: null, controls: null });
+  const spin = useRef<Spin>({ target: null, controls: null, sound: null });
 
   useLayoutEffect(() => resetSpin(spinGroup), [spinGroup]);
 
@@ -545,7 +597,10 @@ const Rock = ({ closing, onClosed }: RockProps) => {
 
   useEffect(() => {
     const current = spin.current;
-    return () => current.controls?.stop();
+    return () => {
+      current.controls?.stop();
+      stopGear(current, 0);
+    };
   }, []);
 
   useEffect(() => {
@@ -585,6 +640,37 @@ const Rock = ({ closing, onClosed }: RockProps) => {
   }, [scene]);
 
   const build = useRef<Build | null>(null);
+
+  // Load the clips while the model is still fetching so the first crank isn't late.
+  useEffect(() => {
+    getSound("crank");
+    getSound("gear");
+  }, []);
+
+  const bgSound = useRef<number | null>(null);
+
+  // Quiet looping ambience that eases in with the scene and drifts out when it closes.
+  // It only starts once loaded, so an unmount before then has nothing queued to undo.
+  useEffect(() => {
+    const bg = getSound("cozyBg");
+    let id: number | null = null;
+    const start = () => {
+      id = bg.play();
+      bg.fade(0, soundVolume("cozyBg"), BG_FADE_IN_MS, id);
+      bgSound.current = id;
+    };
+    if (bg.state() === "loaded") start();
+    else bg.once("load", start);
+    return () => {
+      bg.off("load", start);
+      bgSound.current = null;
+      if (id !== null) fadeOutSound("cozyBg", id, 0);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (closing && bgSound.current !== null) fadeOutSound("cozyBg", bgSound.current, BG_FADE_OUT_MS);
+  }, [closing]);
   const reducedMotion = useMemo(
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     [],
@@ -631,6 +717,7 @@ const Rock = ({ closing, onClosed }: RockProps) => {
           {sideboard && <SideboardNav board={sideboard} onSelect={onNavigate} />}
           {frame && <FrameHint frame={frame} />}
           {monolithMesh && <MonolithTitle monolith={monolithMesh} />}
+          <Clock scene={scene} />
         </primitive>
       </Center>
       {!reducedMotion && !closing && <Wind delay={BUILD.grass.delay + BUILD.grass.duration} />}
