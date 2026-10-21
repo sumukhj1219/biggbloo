@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Bounds, Center, OrbitControls, useGLTF, useTexture } from "@react-three/drei";
@@ -14,9 +14,12 @@ import Cavity, { NO_CAVITY_LAYER } from "./CavityEffect";
 import Grass, { GRASS_NAME } from "./Grass";
 import RockDecals, { DECAL_NAME } from "./RockDecals";
 import Wind from "./Wind";
-import SideboardNav, { FrameHint, INK } from "./SideboardNav";
+import SideboardNav, { FrameHint } from "./SideboardNav";
 import MonolithTitle from "./MonolithTitle";
-import Clock, { CLOCK_FACE, CLOCK_PARTS } from "./Clock";
+import PlankLabels, { PLANK_LABELS } from "./PlankLabels";
+import WorksList from "./WorksList";
+import WorkBoard, { WORKBOARD, WORKBOARD_ARM } from "./WorkBoard";
+import { WORKS } from "@/lib/works";
 import { fadeOutSound, getSound, playSoundAfter, soundVolume } from "@/lib/sounds";
 import {
   EDGE_FADE_PARS,
@@ -26,6 +29,14 @@ import {
 } from "./edgeFade";
 
 const ROCK_URL = "/models/rock.glb";
+// The clock modelled on the holder rock isn't shown; GLTFLoader strips dots, so "Frame.001" is "Frame001".
+const HIDDEN_PARTS = ["Frame001", "Gear001", "Hour", "Minute", "Seconds"];
+
+const useRockScene = () => {
+  const { scene } = useGLTF(ROCK_URL);
+  HIDDEN_PARTS.forEach((name) => scene.getObjectByName(name)?.removeFromParent());
+  return scene;
+};
 const ROCK_COLOR = "#fc6f71";
 const LANDSCAPE_COLOR = "#ffbd8a";
 
@@ -37,6 +48,7 @@ const NOISE_REPEAT = 1.5;
 const GRAIN_ACROSS = new THREE.Vector3(0.6, 8, 8);
 const GRAIN_ALONG = new THREE.Vector3(8, 0.6, 8);
 const GRAIN_ALONG_WIDE = new THREE.Vector3(1.2, 0.15, 1.2);
+const GRAIN_ALONG_PLANK = new THREE.Vector3(8, 8, 0.6);
 
 const WOOD_PARTS: Record<string, [color: string, grain: string, direction: THREE.Vector3]> = {
   Frame: ["#d9a066", "#c98f57", GRAIN_ACROSS],
@@ -44,15 +56,19 @@ const WOOD_PARTS: Record<string, [color: string, grain: string, direction: THREE
   Holder: ["#8a5a34", "#7d502d", GRAIN_ALONG],
   "Button-Left": ["#86634a", "#7b5a42", GRAIN_ACROSS],
   "Button-Right": ["#86634a", "#7b5a42", GRAIN_ACROSS],
-  [CLOCK_FACE]: ["#f0dcba", "#e6cfa8", GRAIN_ALONG_WIDE],
+  ...Object.fromEntries(
+    Object.keys(PLANK_LABELS).map((name) => [name, ["#8a5a34", "#7d502d", GRAIN_ALONG_PLANK]]),
+  ),
+  [WORKBOARD]: ["#8a5a34", "#7d502d", GRAIN_ACROSS],
 };
 
 const METAL_PARTS: Record<string, [color: string, noise: string]> = {
   Gear: ["#d9a84e", "#c99a43"],
   "Worm Gear": ["#8d939e", "#7f8590"],
   Worm_Gear: ["#8d939e", "#7f8590"],
-  ...CLOCK_PARTS,
 };
+
+const isPlank = (name: string) => name in PLANK_LABELS;
 
 const isRotorPart = (name: string) =>
   name === "Rotor" || name === "Gear" || name.startsWith("Worm");
@@ -145,6 +161,7 @@ const BUILD = {
   monolith: { delay: 1.2, duration: 1.1 },
   smallRocks: { delay: 2.1, stagger: 0.1 },
   switchBox: { delay: 2.5, stagger: 0.12 },
+  planks: { delay: 2.3, stagger: 0.12 },
   holderRocks: { delay: 2.9, stagger: 0.12, duration: 0.6 },
   grass: { delay: 3.5, duration: 0.9 },
 };
@@ -180,17 +197,25 @@ type BuildParts = {
   smallRocks: THREE.Object3D[];
   holderRocks: THREE.Object3D[];
   switchBox: THREE.Object3D[];
+  planks: THREE.Object3D[];
   grass?: THREE.Object3D;
 };
 
 const findBuildParts = (scene: THREE.Object3D): BuildParts => {
-  const parts: BuildParts = { rotor: [], smallRocks: [], holderRocks: [], switchBox: [] };
+  const parts: BuildParts = {
+    rotor: [],
+    smallRocks: [],
+    holderRocks: [],
+    switchBox: [],
+    planks: [],
+  };
   scene.traverse((obj) => {
     if (obj.name === "Landscape") parts.landscape = obj;
     else if (isRotorPart(obj.name)) parts.rotor.push(obj);
     else if (obj.name === "Monolith") parts.monolith = obj;
     else if (obj.name === GRASS_NAME) parts.grass = obj;
     else if (obj.name.startsWith("small-rock")) parts.smallRocks.push(obj);
+    else if (isPlank(obj.name)) parts.planks.push(obj);
     else if (obj.name.startsWith("holder-rock") || obj.name === "Sideboard") {
       parts.holderRocks.push(obj);
     }
@@ -211,9 +236,19 @@ const allParts = ({
   smallRocks,
   holderRocks,
   switchBox,
+  planks,
   grass,
 }: BuildParts) =>
-  [landscape, ...rotor, monolith, ...smallRocks, ...holderRocks, ...switchBox, grass].filter(
+  [
+    landscape,
+    ...rotor,
+    monolith,
+    ...smallRocks,
+    ...holderRocks,
+    ...switchBox,
+    ...planks,
+    grass,
+  ].filter(
     (obj): obj is THREE.Object3D => obj !== undefined,
   );
 
@@ -234,7 +269,10 @@ const groupMonolith = (scene: THREE.Object3D) => {
       obj.name === "Monolith" ||
       isRotorPart(obj.name) ||
       obj.name === "Sideboard" ||
-      obj.name.startsWith("holder-rock"),
+      obj.name.startsWith("holder-rock") ||
+      isPlank(obj.name) ||
+      obj.name === WORKBOARD ||
+      obj.name === WORKBOARD_ARM,
   );
   members.forEach((obj) => group.attach(obj));
   return group;
@@ -266,11 +304,15 @@ const resetSpin = (group: THREE.Object3D) => {
 };
 
 const NAV_TURNS = [1, 2, 3];
+const TURN = Math.PI * 2;
+const WORKS_SPIN = DEFAULT_SPIN + NAV_TURNS[0] * SPIN_STEP;
+
+const facesWorks = (angle: number | null) =>
+  angle !== null && Math.abs(angle - WORKS_SPIN - TURN * Math.round((angle - WORKS_SPIN) / TURN)) < 0.1;
 
 const spinTo = (group: THREE.Object3D, spin: Spin, angle: number) => {
   const current = spin.target ?? group.rotation.y;
-  const turn = Math.PI * 2;
-  animateSpin(group, spin, angle + turn * Math.round((current - angle) / turn));
+  animateSpin(group, spin, angle + TURN * Math.round((current - angle) / TURN));
 };
 
 const snapSpin = (group: THREE.Object3D, spin: Spin, dir: number) => {
@@ -315,7 +357,7 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
     timers.push(window.setTimeout(() => (obj.visible = true), delay * 1000));
   };
 
-  const { landscape, rotor, monolith, smallRocks, holderRocks, switchBox, grass } = parts;
+  const { landscape, rotor, monolith, smallRocks, holderRocks, switchBox, planks, grass } = parts;
   if (landscape) {
     const y = landscape.position.y;
     landscape.position.y = y - BUILD.landscape.drop;
@@ -363,15 +405,18 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
       tween(holder.position, { x, z }, { ...ease, duration: BUILD.holderRocks.duration, delay }),
     );
   });
-  switchBox.forEach((obj, i) => {
-    const { x, y, z } = obj.scale;
-    const delay = BUILD.switchBox.delay + i * BUILD.switchBox.stagger;
-    obj.scale.setScalar(0);
-    reveal(obj, delay);
-    controls.push(
-      tween(obj.scale, { x, y, z }, { type: "spring", bounce: 0.4, duration: 0.6, delay }),
-    );
-  });
+  const pop = (objects: THREE.Object3D[], step: { delay: number; stagger: number }) =>
+    objects.forEach((obj, i) => {
+      const { x, y, z } = obj.scale;
+      const delay = step.delay + i * step.stagger;
+      obj.scale.setScalar(0);
+      reveal(obj, delay);
+      controls.push(
+        tween(obj.scale, { x, y, z }, { type: "spring", bounce: 0.4, duration: 0.6, delay }),
+      );
+    });
+  pop(switchBox, BUILD.switchBox);
+  pop(planks, BUILD.planks);
   if (grass) {
     grass.scale.y = 0;
     reveal(grass, BUILD.grass.delay);
@@ -403,6 +448,7 @@ const TEARDOWN = {
   grass: { delay: 0, duration: 0.5 },
   holderRocks: { delay: 0.3, stagger: 0.08, duration: 0.45 },
   switchBox: { delay: 0.55, stagger: 0.08, duration: 0.3 },
+  planks: { delay: 0.2, stagger: 0.08, duration: 0.3 },
   smallRocks: { delay: 0.75, stagger: 0.06, duration: 0.3 },
   monolith: { delay: 1.2, duration: 0.8 },
   rotor: { delay: 1.9, stagger: 0.12, duration: 0.45 },
@@ -423,7 +469,7 @@ const playTeardown = (
   };
   const homeOf = (obj: THREE.Object3D) => home.get(obj) ?? obj.position;
 
-  const { landscape, rotor, monolith, smallRocks, holderRocks, switchBox, grass } = parts;
+  const { landscape, rotor, monolith, smallRocks, holderRocks, switchBox, planks, grass } = parts;
   if (grass) hideAfter(grass, tween(grass.scale, { y: 0 }, { ...ease, ...TEARDOWN.grass }));
   [...holderRocks].reverse().forEach((holder, i) => {
     const axis = monolith ? homeOf(monolith) : new THREE.Vector3();
@@ -442,6 +488,7 @@ const playTeardown = (
       const delay = step.delay + i * step.stagger;
       hideAfter(obj, tween(obj.scale, { x: 0, y: 0, z: 0 }, { ...ease, duration: step.duration, delay }));
     });
+  shrink(planks, TEARDOWN.planks);
   shrink(switchBox, TEARDOWN.switchBox);
   shrink(smallRocks, TEARDOWN.smallRocks);
   const unclip = groundClip(root, monolith ? [...rotor, monolith] : rotor);
@@ -510,7 +557,7 @@ const CameraLight = ({ radius }: { radius: number }) => {
 type RockProps = { closing: boolean; onClosed: () => void };
 
 const Rock = ({ closing, onClosed }: RockProps) => {
-  const { scene } = useGLTF(ROCK_URL);
+  const scene = useRockScene();
   const perlin = useTexture(PERLIN_URL, (tex) => {
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   });
@@ -546,14 +593,9 @@ const Rock = ({ closing, onClosed }: RockProps) => {
         name,
         createNoiseMaterial(color, noise, perlin, noiseScale),
       ]),
+      // Its own copy of the rock, so clipping it while it slides out leaves the monolith alone.
+      [WORKBOARD_ARM, createNoiseMaterial(ROCK_COLOR, ROCK_NOISE_COLOR, perlin, noiseScale)],
     ]);
-    // The clock is built from flat cards, so every part needs both sides to show from behind.
-    [CLOCK_FACE, ...Object.keys(CLOCK_PARTS)].forEach(
-      (name) => (partMaterials[name].side = THREE.DoubleSide),
-    );
-    // The pink-tinted lights warm everything they touch; a little self-glow in the sign ink
-    // keeps the dial reading as the same cream as the 3D text, which is unlit.
-    (partMaterials[CLOCK_FACE] as THREE.MeshLambertMaterial).emissive.set(INK).multiplyScalar(0.35);
     scene.traverse((obj) => {
       if (
         obj instanceof THREE.Mesh &&
@@ -580,6 +622,10 @@ const Rock = ({ closing, onClosed }: RockProps) => {
 
   useLayoutEffect(() => resetSpin(spinGroup), [spinGroup]);
 
+  const [worksOpen, setWorksOpen] = useState(false);
+  const [selectedWork, setSelectedWork] = useState(0);
+  const syncWorks = () => setWorksOpen(facesWorks(spin.current.target));
+
   const sideboard = useMemo(() => {
     const board = scene.getObjectByName("Sideboard");
     return board instanceof THREE.Mesh ? board : null;
@@ -592,8 +638,10 @@ const Rock = ({ closing, onClosed }: RockProps) => {
     const mesh = scene.getObjectByName("Monolith");
     return mesh instanceof THREE.Mesh ? mesh : null;
   }, [scene]);
-  const onNavigate = (index: number) =>
+  const onNavigate = (index: number) => {
     spinTo(spinGroup, spin.current, DEFAULT_SPIN + NAV_TURNS[index] * SPIN_STEP);
+    syncWorks();
+  };
 
   useEffect(() => {
     const current = spin.current;
@@ -624,6 +672,7 @@ const Rock = ({ closing, onClosed }: RockProps) => {
     if (dir === undefined) return;
     e.stopPropagation();
     snapSpin(spinGroup, spin.current, dir);
+    syncWorks();
     pressButton(e.object, scene.getObjectByName("Frame"), true);
   };
   const onPointerOver = (e: ThreeEvent<PointerEvent>) => {
@@ -717,7 +766,18 @@ const Rock = ({ closing, onClosed }: RockProps) => {
           {sideboard && <SideboardNav board={sideboard} onSelect={onNavigate} />}
           {frame && <FrameHint frame={frame} />}
           {monolithMesh && <MonolithTitle monolith={monolithMesh} />}
-          <Clock scene={scene} />
+          {monolithMesh && <PlankLabels scene={scene} monolith={monolithMesh} />}
+          {monolithMesh && (
+            <WorksList monolith={monolithMesh} selected={selectedWork} onSelect={setSelectedWork} />
+          )}
+          {monolithMesh && (
+            <WorkBoard
+              scene={scene}
+              monolith={monolithMesh}
+              open={worksOpen && !closing}
+              work={WORKS[selectedWork]}
+            />
+          )}
         </primitive>
       </Center>
       {!reducedMotion && !closing && <Wind delay={BUILD.grass.delay + BUILD.grass.duration} />}
@@ -726,7 +786,7 @@ const Rock = ({ closing, onClosed }: RockProps) => {
 };
 
 const FramingProxy = () => {
-  const { scene } = useGLTF(ROCK_URL);
+  const scene = useRockScene();
   const size = useMemo(
     () => new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3()),
     [scene],

@@ -7,7 +7,7 @@ import { Text } from "@react-three/drei";
 
 export const FONT_URL = "/fonts/AmaticSC-Bold.ttf";
 export const INK = "#f0dcba";
-const INK_HOVER = "#fff6e6";
+export const INK_HOVER = "#fff6e6";
 const FONT_SIZE = 0.62;
 const LINE_GAP = 0.85;
 

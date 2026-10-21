@@ -13,17 +13,21 @@ const LINES = [
   { text: "Sumukh", size: 0.5, drop: 0.65 },
 ];
 
-const placeOnFace = (mesh: THREE.Mesh, y: number) => {
+// Finds the monolith's surface at height `y` on the side facing `face` (in the monolith's own
+// space), and turns content to sit flat on it, facing out.
+export const placeOnFace = (mesh: THREE.Mesh, y: number, face = FACE) => {
+  mesh.geometry.computeBoundingBox();
   const box = mesh.geometry.boundingBox!;
-  const center = box.getCenter(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3()).setY(y);
+  const reach = box.getSize(new THREE.Vector3()).length();
   const probe = new THREE.Mesh(mesh.geometry);
   const raycaster = new THREE.Raycaster(
-    new THREE.Vector3(box.max.x + 1, y, center.z),
-    FACE.clone().negate(),
+    center.clone().addScaledVector(face, reach),
+    face.clone().negate(),
   );
   const [hit] = raycaster.intersectObject(probe, false);
-  const normal = hit?.face?.normal.clone() ?? FACE.clone();
-  const point = hit?.point ?? new THREE.Vector3(box.max.x, y, center.z);
+  const normal = hit?.face?.normal.clone() ?? face.clone();
+  const point = hit?.point ?? center.addScaledVector(face, reach / 2);
   return {
     position: point.addScaledVector(normal, 0.01),
     quaternion: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal),
