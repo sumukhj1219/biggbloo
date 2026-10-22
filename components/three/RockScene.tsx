@@ -18,6 +18,21 @@ import SideboardNav, { FrameHint } from "./SideboardNav";
 import MonolithTitle from "./MonolithTitle";
 import PlankLabels, { PLANK_LABELS } from "./PlankLabels";
 import WorksList from "./WorksList";
+import Crane from "./Crane";
+import {
+  CRANE,
+  groupSiteProps,
+  isBamboo,
+  isConstruction,
+  isSiteProp,
+  propRank,
+  sitePart,
+  type SitePart,
+} from "./siteProps";
+import Scaffold from "./Scaffold";
+import Builder from "./Builder";
+import Sleeper from "./Sleeper";
+import { UNDER_CONSTRUCTION } from "@/lib/construction";
 import WorkBoard, { WORKBOARD, WORKBOARD_ARM } from "./WorkBoard";
 import { WORKS } from "@/lib/works";
 import { fadeOutSound, getSound, playSoundAfter, soundVolume } from "@/lib/sounds";
@@ -35,6 +50,12 @@ const HIDDEN_PARTS = ["Frame001", "Gear001", "Hour", "Minute", "Seconds"];
 const useRockScene = () => {
   const { scene } = useGLTF(ROCK_URL);
   HIDDEN_PARTS.forEach((name) => scene.getObjectByName(name)?.removeFromParent());
+  // Once construction is over, the whole site is left out of the scene.
+  if (!UNDER_CONSTRUCTION) {
+    scene.children
+      .filter((obj) => isConstruction(obj.name))
+      .forEach((obj) => obj.removeFromParent());
+  }
   return scene;
 };
 const ROCK_COLOR = "#fc6f71";
@@ -50,6 +71,9 @@ const GRAIN_ALONG = new THREE.Vector3(8, 0.6, 8);
 const GRAIN_ALONG_WIDE = new THREE.Vector3(1.2, 0.15, 1.2);
 const GRAIN_ALONG_PLANK = new THREE.Vector3(8, 8, 0.6);
 
+// Bamboo poles are long in local Y, so the grain runs up them.
+const BAMBOO: [color: string, grain: string] = ["#cfae5c", "#b38f42"];
+
 const WOOD_PARTS: Record<string, [color: string, grain: string, direction: THREE.Vector3]> = {
   Frame: ["#d9a066", "#c98f57", GRAIN_ACROSS],
   Sideboard: ["#d9a066", "#c98f57", GRAIN_ALONG_WIDE],
@@ -62,10 +86,49 @@ const WOOD_PARTS: Record<string, [color: string, grain: string, direction: THREE
   [WORKBOARD]: ["#8a5a34", "#7d502d", GRAIN_ACROSS],
 };
 
+const CEMENT: [color: string, noise: string] = ["#b3b0a8", "#9c9990"];
+const GOLD: [color: string, noise: string] = ["#d9a84e", "#c99a43"];
+
+type Stripes = { colors: [string, string]; axis: THREE.Vector3; period: number };
+
+// Construction-site paint. Stripes run along each part's own axes: up the posts and cones, and
+// at 45° across the barricade boards, which are long in X and tall in Y.
+const SITE_LOOK: Record<SitePart, [color: string, noise: string, stripes?: Stripes]> = {
+  base: CEMENT,
+  holder: [
+    "#f4f0e6",
+    "#d9d3c4",
+    { colors: ["#ec5a2a", "#f4f0e6"], axis: new THREE.Vector3(0, 1, 0), period: 0.36 },
+  ],
+  zigzag: [
+    "#f2c12e",
+    "#d9a823",
+    {
+      colors: ["#1f1d1a", "#f2c12e"],
+      axis: new THREE.Vector3(1, 1, 0).normalize(),
+      period: 0.26,
+    },
+  ],
+  cone: [
+    "#f4661b",
+    "#d9551a",
+    { colors: ["#f4661b", "#f4f0e6"], axis: new THREE.Vector3(0, 1, 0), period: 0.24 },
+  ],
+  coneBase: ["#e35a17", "#c74d14"],
+};
+
 const METAL_PARTS: Record<string, [color: string, noise: string]> = {
-  Gear: ["#d9a84e", "#c99a43"],
+  Gear: GOLD,
   "Worm Gear": ["#8d939e", "#7f8590"],
   Worm_Gear: ["#8d939e", "#7f8590"],
+  // The crane's winch on top, and the loads it works with.
+  [CRANE.gear]: GOLD,
+  [CRANE.worm]: GOLD,
+  [CRANE.drum]: GOLD,
+  [CRANE.carrier]: CEMENT,
+  // GLTFLoader strips dots, so Blender's "brick.001" loads as "brick001".
+  brick: CEMENT,
+  brick001: CEMENT,
 };
 
 const isPlank = (name: string) => name in PLANK_LABELS;
@@ -80,14 +143,22 @@ const createNoiseMaterial = (
   noiseScale: number,
   fade?: { edge: EdgeFade; dpr: number },
   grain?: THREE.Vector3,
+  stripes?: Stripes,
 ) => {
   const material = new THREE.MeshLambertMaterial({ color, flatShading: true });
-  material.customProgramCacheKey = () => `noise${fade ? "-fade" : ""}${grain ? "-grain" : ""}`;
+  material.customProgramCacheKey = () =>
+    `noise${fade ? "-fade" : ""}${grain ? "-grain" : ""}${stripes ? "-stripes" : ""}`;
   material.onBeforeCompile = (shader) => {
     shader.uniforms.noiseMap = { value: noiseMap };
     shader.uniforms.noiseColor = { value: new THREE.Color(noiseColor) };
     shader.uniforms.noiseScale = { value: noiseScale };
     if (grain) shader.uniforms.grainScale = { value: grain };
+    if (stripes) {
+      shader.uniforms.stripeA = { value: new THREE.Color(stripes.colors[0]) };
+      shader.uniforms.stripeB = { value: new THREE.Color(stripes.colors[1]) };
+      shader.uniforms.stripeAxis = { value: stripes.axis };
+      shader.uniforms.stripePeriod = { value: stripes.period };
+    }
     if (fade) Object.assign(shader.uniforms, edgeFadeUniforms(fade.edge, fade.dpr));
 
     shader.vertexShader = shader.vertexShader
@@ -116,6 +187,7 @@ const createNoiseMaterial = (
         uniform vec3 noiseColor;
         uniform float noiseScale;
         ${grain ? "uniform vec3 grainScale;" : ""}
+        ${stripes ? "uniform vec3 stripeA; uniform vec3 stripeB; uniform vec3 stripeAxis; uniform float stripePeriod;" : ""}
         varying vec3 vNoisePos;
         ${fade ? EDGE_FADE_PARS : ""}`,
       )
@@ -131,7 +203,12 @@ const createNoiseMaterial = (
                     + texture2D(noiseMap, p.xz).r * blend.y
                     + texture2D(noiseMap, p.xy).r * blend.z;
         ${grain ? "noise = smoothstep(0.35, 0.85, 0.5 + 0.5 * sin(noise * 40.0)) * 0.8;" : ""}
-        diffuseColor.rgb = mix(diffuseColor.rgb, noiseColor, noise);`,
+        ${
+          stripes
+            ? `float band = step(0.5, fract(dot(vNoisePos, stripeAxis) / stripePeriod));
+        diffuseColor.rgb = mix(stripeA, stripeB, band) * (1.0 - noise * 0.12);`
+            : "diffuseColor.rgb = mix(diffuseColor.rgb, noiseColor, noise);"
+        }`,
       );
   };
   return material;
@@ -155,20 +232,27 @@ const BG_FADE_IN_MS = 2000;
 const BG_FADE_OUT_MS = 1200;
 
 const BUILD_EASE = [0.22, 1, 0.36, 1] as const;
+// The site props rise out of the ground first; the monolith's build follows on after them.
+const PROPS_LEAD = UNDER_CONSTRUCTION ? 1.4 : 0;
 const BUILD = {
   landscape: { delay: 0, duration: 0.9, drop: 1.5 },
-  rotor: { delay: 0.6, stagger: 0.2, duration: 0.6 },
-  monolith: { delay: 1.2, duration: 1.1 },
-  smallRocks: { delay: 2.1, stagger: 0.1 },
-  switchBox: { delay: 2.5, stagger: 0.12 },
-  planks: { delay: 2.3, stagger: 0.12 },
-  holderRocks: { delay: 2.9, stagger: 0.12, duration: 0.6 },
-  grass: { delay: 3.5, duration: 0.9 },
+  siteProps: { delay: 0.6, stagger: 0.12, duration: 1.1 },
+  rotor: { delay: PROPS_LEAD + 0.6, stagger: 0.2, duration: 0.6 },
+  monolith: { delay: PROPS_LEAD + 1.2, duration: 1.1 },
+  smallRocks: { delay: PROPS_LEAD + 2.1, stagger: 0.1 },
+  switchBox: { delay: PROPS_LEAD + 2.5, stagger: 0.12 },
+  planks: { delay: PROPS_LEAD + 2.3, stagger: 0.12 },
+  holderRocks: { delay: PROPS_LEAD + 2.9, stagger: 0.12, duration: 0.6 },
+  grass: { delay: PROPS_LEAD + 3.5, duration: 0.9 },
 };
+
+// The crane's carrier arrives on its own, once everything else is up.
+const BUILD_END = BUILD.grass.delay + BUILD.grass.duration;
 
 const ROTOR_ORDER = ["Rotor", "Gear", "Worm"];
 
 const sinkDepth = (obj: THREE.Object3D, y: number) => {
+  if (typeof obj.userData.propHeight === "number") return obj.userData.propHeight + 0.05;
   if (!(obj instanceof THREE.Mesh)) return 0;
   obj.geometry.computeBoundingBox();
   const top = y + obj.geometry.boundingBox!.max.y * obj.scale.y;
@@ -179,11 +263,13 @@ const groundClip = (root: THREE.Object3D, objects: THREE.Object3D[]) => {
   root.updateWorldMatrix(true, false);
   const groundY = root.localToWorld(new THREE.Vector3()).y;
   const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -groundY);
-  const materials = new Set(
-    objects.flatMap((obj) =>
-      obj instanceof THREE.Mesh ? [obj.material as THREE.Material] : [],
-    ),
-  );
+  // Groups (the site props) clip every mesh inside them.
+  const meshes: THREE.Mesh[] = [];
+  objects.forEach((obj) => {
+    if (obj instanceof THREE.Mesh) meshes.push(obj);
+    else obj.traverse((child) => child instanceof THREE.Mesh && meshes.push(child));
+  });
+  const materials = new Set(meshes.map((mesh) => mesh.material as THREE.Material));
   materials.forEach((m) => (m.clippingPlanes = [plane]));
   return () => materials.forEach((m) => (m.clippingPlanes = null));
 };
@@ -198,6 +284,7 @@ type BuildParts = {
   holderRocks: THREE.Object3D[];
   switchBox: THREE.Object3D[];
   planks: THREE.Object3D[];
+  siteProps: THREE.Object3D[];
   grass?: THREE.Object3D;
 };
 
@@ -208,6 +295,7 @@ const findBuildParts = (scene: THREE.Object3D): BuildParts => {
     holderRocks: [],
     switchBox: [],
     planks: [],
+    siteProps: [],
   };
   scene.traverse((obj) => {
     if (obj.name === "Landscape") parts.landscape = obj;
@@ -216,6 +304,7 @@ const findBuildParts = (scene: THREE.Object3D): BuildParts => {
     else if (obj.name === GRASS_NAME) parts.grass = obj;
     else if (obj.name.startsWith("small-rock")) parts.smallRocks.push(obj);
     else if (isPlank(obj.name)) parts.planks.push(obj);
+    else if (isSiteProp(obj.name) && obj.parent === scene) parts.siteProps.push(obj);
     else if (obj.name.startsWith("holder-rock") || obj.name === "Sideboard") {
       parts.holderRocks.push(obj);
     }
@@ -223,6 +312,7 @@ const findBuildParts = (scene: THREE.Object3D): BuildParts => {
   const order = (obj: THREE.Object3D) =>
     ROTOR_ORDER.findIndex((prefix) => obj.name.startsWith(prefix));
   parts.rotor.sort((a, b) => order(a) - order(b));
+  parts.siteProps.sort((a, b) => propRank(a.name) - propRank(b.name));
   parts.switchBox = SWITCH_BOX.map((name) => scene.getObjectByName(name)).filter(
     (obj): obj is THREE.Object3D => obj !== undefined,
   );
@@ -237,6 +327,7 @@ const allParts = ({
   holderRocks,
   switchBox,
   planks,
+  siteProps,
   grass,
 }: BuildParts) =>
   [
@@ -247,6 +338,7 @@ const allParts = ({
     ...holderRocks,
     ...switchBox,
     ...planks,
+    ...siteProps,
     grass,
   ].filter(
     (obj): obj is THREE.Object3D => obj !== undefined,
@@ -282,6 +374,7 @@ type Spin = {
   target: number | null;
   controls: AnimationPlaybackControls | null;
   sound: number | null;
+  jam: number | null;
 };
 
 const GEAR_FADE_MS = 250;
@@ -297,6 +390,19 @@ const stopGear = (spin: Spin, fade = GEAR_FADE_MS) => {
   if (spin.sound === null) return;
   fadeOutSound("gear", spin.sound, fade);
   spin.sound = null;
+};
+
+// While the site is under construction the monolith is locked: the controls still grind, but
+// only for a moment, and nothing turns.
+const JAM_MS = 350;
+
+const jamGear = (spin: Spin) => {
+  if (spin.jam !== null) window.clearTimeout(spin.jam);
+  startGear(spin);
+  spin.jam = window.setTimeout(() => {
+    spin.jam = null;
+    stopGear(spin);
+  }, JAM_MS);
 };
 
 const resetSpin = (group: THREE.Object3D) => {
@@ -357,7 +463,17 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
     timers.push(window.setTimeout(() => (obj.visible = true), delay * 1000));
   };
 
-  const { landscape, rotor, monolith, smallRocks, holderRocks, switchBox, planks, grass } = parts;
+  const {
+    landscape,
+    rotor,
+    monolith,
+    smallRocks,
+    holderRocks,
+    switchBox,
+    planks,
+    siteProps,
+    grass,
+  } = parts;
   if (landscape) {
     const y = landscape.position.y;
     landscape.position.y = y - BUILD.landscape.drop;
@@ -365,10 +481,26 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
     controls.push(tween(landscape.position, { y }, { ...ease, ...BUILD.landscape }));
   }
 
-  const underground = monolith ? [...rotor, monolith] : rotor;
-  const unclip = groundClip(root, underground);
-  // The crank grinds from shortly after the build starts until the monolith is fully up.
+  // The crank grinds from shortly after the build starts until everything is fully up.
   const stopCrank = playSoundAfter("crank", CRANK_DELAY);
+  const unclipProps = groundClip(root, siteProps);
+  const propRises = siteProps.map((prop, i) => {
+    const y = prop.position.y;
+    const delay = BUILD.siteProps.delay + i * BUILD.siteProps.stagger;
+    prop.position.y = y - sinkDepth(prop, y);
+    reveal(prop, delay);
+    const rise = tween(prop.position, { y }, { ...ease, duration: BUILD.siteProps.duration, delay });
+    controls.push(rise);
+    return rise.finished;
+  });
+  Promise.all(propRises).then(unclipProps);
+
+  const underground = monolith ? [...rotor, monolith] : rotor;
+  const unclipUnderground = groundClip(root, underground);
+  const unclip = () => {
+    unclipProps();
+    unclipUnderground();
+  };
   const rises = underground.map((obj) => {
     const index = rotor.indexOf(obj);
     const step =
@@ -383,7 +515,7 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
     return rise.finished;
   });
   Promise.all(rises).then(() => {
-    unclip();
+    unclipUnderground();
     stopCrank(CRANK_FADE_MS);
   });
   smallRocks.forEach((rock, i) => {
@@ -444,15 +576,18 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
 type Build = ReturnType<typeof playBuild>;
 
 const TEARDOWN_EASE = [0.55, 0, 1, 0.45] as const;
+// Same order as the build: the site props sink away first, then the monolith comes down.
+const PROPS_TAIL = UNDER_CONSTRUCTION ? 0.8 : 0;
 const TEARDOWN = {
-  grass: { delay: 0, duration: 0.5 },
-  holderRocks: { delay: 0.3, stagger: 0.08, duration: 0.45 },
-  switchBox: { delay: 0.55, stagger: 0.08, duration: 0.3 },
-  planks: { delay: 0.2, stagger: 0.08, duration: 0.3 },
-  smallRocks: { delay: 0.75, stagger: 0.06, duration: 0.3 },
-  monolith: { delay: 1.2, duration: 0.8 },
-  rotor: { delay: 1.9, stagger: 0.12, duration: 0.45 },
-  landscape: { delay: 2.5, duration: 0.6 },
+  siteProps: { delay: 0, stagger: 0.1, duration: 0.6 },
+  grass: { delay: PROPS_TAIL, duration: 0.5 },
+  holderRocks: { delay: PROPS_TAIL + 0.3, stagger: 0.08, duration: 0.45 },
+  switchBox: { delay: PROPS_TAIL + 0.55, stagger: 0.08, duration: 0.3 },
+  planks: { delay: PROPS_TAIL + 0.2, stagger: 0.08, duration: 0.3 },
+  smallRocks: { delay: PROPS_TAIL + 0.75, stagger: 0.06, duration: 0.3 },
+  monolith: { delay: PROPS_TAIL + 1.2, duration: 0.8 },
+  rotor: { delay: PROPS_TAIL + 1.9, stagger: 0.12, duration: 0.45 },
+  landscape: { delay: PROPS_TAIL + 2.5, duration: 0.6 },
 };
 
 const playTeardown = (
@@ -469,7 +604,17 @@ const playTeardown = (
   };
   const homeOf = (obj: THREE.Object3D) => home.get(obj) ?? obj.position;
 
-  const { landscape, rotor, monolith, smallRocks, holderRocks, switchBox, planks, grass } = parts;
+  const {
+    landscape,
+    rotor,
+    monolith,
+    smallRocks,
+    holderRocks,
+    switchBox,
+    planks,
+    siteProps,
+    grass,
+  } = parts;
   if (grass) hideAfter(grass, tween(grass.scale, { y: 0 }, { ...ease, ...TEARDOWN.grass }));
   [...holderRocks].reverse().forEach((holder, i) => {
     const axis = monolith ? homeOf(monolith) : new THREE.Vector3();
@@ -491,7 +636,7 @@ const playTeardown = (
   shrink(planks, TEARDOWN.planks);
   shrink(switchBox, TEARDOWN.switchBox);
   shrink(smallRocks, TEARDOWN.smallRocks);
-  const unclip = groundClip(root, monolith ? [...rotor, monolith] : rotor);
+  const unclip = groundClip(root, [...siteProps, ...(monolith ? [...rotor, monolith] : rotor)]);
   const stopCrank = playSoundAfter("crank", CRANK_DELAY);
   const sinks: Promise<unknown>[] = [];
   const sink = (obj: THREE.Object3D, step: { delay: number; duration: number }) => {
@@ -500,6 +645,12 @@ const playTeardown = (
     hideAfter(obj, c);
     sinks.push(c.finished);
   };
+  siteProps.forEach((prop, i) =>
+    sink(prop, {
+      delay: TEARDOWN.siteProps.delay + i * TEARDOWN.siteProps.stagger,
+      duration: TEARDOWN.siteProps.duration,
+    }),
+  );
   if (monolith) sink(monolith, TEARDOWN.monolith);
   [...rotor].reverse().forEach((obj, i) =>
     sink(obj, {
@@ -596,6 +747,25 @@ const Rock = ({ closing, onClosed }: RockProps) => {
       // Its own copy of the rock, so clipping it while it slides out leaves the monolith alone.
       [WORKBOARD_ARM, createNoiseMaterial(ROCK_COLOR, ROCK_NOISE_COLOR, perlin, noiseScale)],
     ]);
+    const siteMaterial = (part: SitePart) => {
+      const [color, noise, stripes] = SITE_LOOK[part];
+      return createNoiseMaterial(color, noise, perlin, noiseScale, undefined, undefined, stripes);
+    };
+    const siteMaterials: Record<SitePart, THREE.Material> = {
+      base: siteMaterial("base"),
+      holder: siteMaterial("holder"),
+      zigzag: siteMaterial("zigzag"),
+      cone: siteMaterial("cone"),
+      coneBase: siteMaterial("coneBase"),
+    };
+    const bambooMaterial = createNoiseMaterial(
+      BAMBOO[0],
+      BAMBOO[1],
+      perlin,
+      noiseScale,
+      undefined,
+      GRAIN_ALONG,
+    );
     scene.traverse((obj) => {
       if (
         obj instanceof THREE.Mesh &&
@@ -603,8 +773,12 @@ const Rock = ({ closing, onClosed }: RockProps) => {
         obj.name !== DECAL_NAME &&
         !obj.userData.keepMaterial
       ) {
+        const site = sitePart(obj.name);
         obj.material =
-          obj.name === "Landscape" ? landscapeMaterial : (partMaterials[obj.name] ?? material);
+          obj.name === "Landscape"
+            ? landscapeMaterial
+            : (partMaterials[obj.name] ??
+              (site ? siteMaterials[site] : isBamboo(obj.name) ? bambooMaterial : material));
         obj.castShadow = true;
         obj.receiveShadow = true;
         if (obj.name === "Landscape") obj.layers.set(NO_CAVITY_LAYER);
@@ -614,11 +788,14 @@ const Rock = ({ closing, onClosed }: RockProps) => {
       material.dispose();
       landscapeMaterial.dispose();
       Object.values(partMaterials).forEach((m) => m.dispose());
+      Object.values(siteMaterials).forEach((m) => m.dispose());
+      bambooMaterial.dispose();
     };
   }, [scene, perlin, radius, edge, dpr]);
 
   const spinGroup = useMemo(() => groupMonolith(scene), [scene]);
-  const spin = useRef<Spin>({ target: null, controls: null, sound: null });
+  useMemo(() => groupSiteProps(scene), [scene]);
+  const spin = useRef<Spin>({ target: null, controls: null, sound: null, jam: null });
 
   useLayoutEffect(() => resetSpin(spinGroup), [spinGroup]);
 
@@ -639,6 +816,7 @@ const Rock = ({ closing, onClosed }: RockProps) => {
     return mesh instanceof THREE.Mesh ? mesh : null;
   }, [scene]);
   const onNavigate = (index: number) => {
+    if (UNDER_CONSTRUCTION) return jamGear(spin.current);
     spinTo(spinGroup, spin.current, DEFAULT_SPIN + NAV_TURNS[index] * SPIN_STEP);
     syncWorks();
   };
@@ -647,6 +825,7 @@ const Rock = ({ closing, onClosed }: RockProps) => {
     const current = spin.current;
     return () => {
       current.controls?.stop();
+      if (current.jam !== null) window.clearTimeout(current.jam);
       stopGear(current, 0);
     };
   }, []);
@@ -671,8 +850,11 @@ const Rock = ({ closing, onClosed }: RockProps) => {
     const dir = BUTTON_SPIN[e.object.name];
     if (dir === undefined) return;
     e.stopPropagation();
-    snapSpin(spinGroup, spin.current, dir);
-    syncWorks();
+    if (UNDER_CONSTRUCTION) jamGear(spin.current);
+    else {
+      snapSpin(spinGroup, spin.current, dir);
+      syncWorks();
+    }
     pressButton(e.object, scene.getObjectByName("Frame"), true);
   };
   const onPointerOver = (e: ThreeEvent<PointerEvent>) => {
@@ -767,6 +949,10 @@ const Rock = ({ closing, onClosed }: RockProps) => {
           {frame && <FrameHint frame={frame} />}
           {monolithMesh && <MonolithTitle monolith={monolithMesh} />}
           {monolithMesh && <PlankLabels scene={scene} monolith={monolithMesh} />}
+          <Scaffold scene={scene} />
+          <Builder scene={scene} />
+          {monolithMesh && <Sleeper monolith={monolithMesh} />}
+          <Crane scene={scene} appearAt={reducedMotion ? 0 : BUILD_END} />
           {monolithMesh && (
             <WorksList monolith={monolithMesh} selected={selectedWork} onSelect={setSelectedWork} />
           )}
