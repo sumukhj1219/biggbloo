@@ -2,8 +2,9 @@ import Container from "@/components/common/Container";
 import React, { forwardRef } from "react";
 import Image from "next/image";
 import Heart from "@/icons/Heart";
-import Link from "next/link";
 import India from "@/icons/India";
+import PixelCoinLink from "@/components/ui/PixelCoinLink";
+import PixelXCard from "@/components/ui/PixelXCard";
 
 const SelfIntro = forwardRef<HTMLDivElement>((_props, ref) => {
   return (
@@ -27,20 +28,10 @@ const SelfIntro = forwardRef<HTMLDivElement>((_props, ref) => {
 
       <p className="text-sm leading-relaxed sm:text-lg text-muted-foreground/60">
         22, based in India <India className="inline align-text-bottom mb-0.5" width={16} height={16} />. I build pixel-perfect UIs,{" "}
-        <Link
-          href={"https://x.com/biggbloo"}
-          className="italic underline hover:text-primary"
-        >
-          games
-        </Link>{" "}
+        <PixelCoinLink href={"https://x.com/biggbloo"}>games</PixelCoinLink>{" "}
         and backends, and
         sweat the small details. Find me on X as{" "}
-        <Link
-          href={"https://x.com/biggbloo"}
-          className="italic underline hover:text-primary"
-        >
-          @biggbloo
-        </Link>
+        <PixelXCard href={"https://x.com/biggbloo"}>@biggbloo</PixelXCard>
         .
       </p>
     </Container>

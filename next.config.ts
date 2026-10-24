@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
+import createMDX from "@next/mdx";
 
 const nextConfig: NextConfig = {
+  // Lets posts in content/writings be imported as MDX modules.
+  pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   transpilePackages: ["three"],
   allowedDevOrigins: [
     "*.ngrok-free.app",
@@ -22,8 +25,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "lastfm-img.freetls.fastly.net" },
       { protocol: "https", hostname: "lastfm.freetls.fastly.net" },
+      { protocol: "https", hostname: "pbs.twimg.com" },
     ],
   },
 };
 
-export default nextConfig;
+const withMDX = createMDX();
+
+export default withMDX(nextConfig);

@@ -57,3 +57,33 @@ export const setMuted = (value: boolean) => {
   muted = value;
   Howler.mute(value);
 };
+
+// Synthesized 8-bit blips (chained oscillator notes), so they need no audio files.
+let toneCtx: AudioContext | null = null;
+
+type Note = { freq: number; dur: number };
+
+const playTones = (notes: Note[], type: OscillatorType, volume = 0.05, tail = 0.3) => {
+  if (muted) return;
+  toneCtx ??= new AudioContext();
+  const ctx = toneCtx;
+  if (ctx.state === "suspended") ctx.resume().catch(() => undefined);
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  let at = t;
+  for (const { freq, dur } of notes) {
+    osc.frequency.setValueAtTime(freq, at);
+    at += dur;
+  }
+  gain.gain.setValueAtTime(volume, t);
+  gain.gain.setValueAtTime(volume, at);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + tail);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(at + tail);
+};
+
+export const playCoin = () =>
+  playTones([{ freq: 988, dur: 0.07 }, { freq: 1319, dur: 0 }], "square", 0.05, 0.33);

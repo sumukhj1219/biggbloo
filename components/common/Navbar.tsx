@@ -17,7 +17,7 @@ const MotionLink = motion.create(Link);
 const RockScene = dynamic(() => import("@/components/three/RockScene"), { ssr: false });
 
 const links = [
-  { label: "Home", href: "/", bg: "bg-yellow-300", fill: "text-yellow-300" },
+  { label: "Home", href: "/", bg: "bg-green-300", fill: "text-green-300" },
   { label: "Blogs", href: "/writings", bg: "bg-pink-300", fill: "text-pink-300" },
 ];
 
