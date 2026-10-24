@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/common/Navbar";
 import Reveal from "@/components/common/Reveal";
+import ScrollFade from "@/components/common/ScrollFade";
+import Footer from "@/components/common/Footer";
 import "./globals.css";
 import { figtree, anton } from "@/lib/fonts";
 import "claudesprites/styles.css";
@@ -18,6 +20,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Navbar />
         </Reveal>
         {children}
+        <Footer />
+        <ScrollFade />
       </body>
     </html>
   );

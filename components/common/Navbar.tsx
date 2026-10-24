@@ -18,7 +18,7 @@ const RockScene = dynamic(() => import("@/components/three/RockScene"), { ssr: f
 
 const links = [
   { label: "Home", href: "/", bg: "bg-yellow-300", fill: "text-yellow-300" },
-  { label: "Writings", href: "/writings", bg: "bg-pink-300", fill: "text-pink-300" },
+  { label: "Blogs", href: "/writings", bg: "bg-pink-300", fill: "text-pink-300" },
 ];
 
 const Navbar = () => {
@@ -89,8 +89,8 @@ const Navbar = () => {
             aria-hidden="true"
             className="absolute inset-0 -z-10 bg-orange-300 shadow-[inset_0_0_12px_0px_var(--color-background)]"
           />
-          <HoverChecker fill="text-orange-300" className="w-[1.3125rem] sm:w-[1.6875rem]" />
           <span className="px-2 py-1">Magic</span>
+          <HoverChecker fill="text-orange-300" className="w-[1.3125rem] sm:w-[1.6875rem]" />
         </motion.button>
       </div>
       {typeof document !== "undefined" &&
