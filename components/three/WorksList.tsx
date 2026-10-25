@@ -8,7 +8,6 @@ import { WORKS } from "@/lib/works";
 import { placeOnFace } from "./MonolithTitle";
 import { FONT_URL, INK, INK_HOVER } from "./SideboardNav";
 
-// The Works plank hangs on this side of the monolith; the list runs down the face below it.
 const WORKS_FACE = new THREE.Vector3(0, 0, 1);
 const TOP_GAP = 2;
 const FONT_SIZE = 0.38;
@@ -27,8 +26,6 @@ type WorksListProps = {
   onSelect: (index: number) => void;
 };
 
-// Picks which project the work board plays: hovering with a mouse, or tapping on touch screens,
-// which have no hover. Every face's text is raycast, so the list ignores it while round the back.
 const WorksList = ({ monolith, selected, onSelect }: WorksListProps) => {
   const lines = useMemo(() => {
     monolith.geometry.computeBoundingBox();

@@ -35,10 +35,7 @@ export function useCyclePhase({ active, cycleMsBase, speed = 1 }: UseCyclePhaseO
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    if (!active) {
-      setPhase(0);
-      return;
-    }
+    if (!active) return;
 
     const safeSpeed = speed > 0 ? speed : 1;
     const raw = cycleMsBase / safeSpeed;
@@ -56,7 +53,7 @@ export function useCyclePhase({ active, cycleMsBase, speed = 1 }: UseCyclePhaseO
     return () => cancelAnimationFrame(rafId);
   }, [active, cycleMsBase, speed]);
 
-  return phase;
+  return active ? phase : 0;
 }
 
 interface UseSteppedCycleOptions {
@@ -123,8 +120,7 @@ export function useSteppedCycle({
   useEffect(() => {
     if (!active) {
       activeRef.current = false;
-      currentStepRef.current = idleStep;
-      setStep(idleStep);
+      currentStepRef.current = -1;
       return;
     }
 

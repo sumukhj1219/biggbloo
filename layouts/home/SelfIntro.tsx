@@ -1,5 +1,5 @@
 import Container from "@/components/common/Container";
-import React, { forwardRef } from "react";
+import { forwardRef } from "react";
 import Image from "next/image";
 import Heart from "@/icons/Heart";
 import India from "@/icons/India";
@@ -27,10 +27,10 @@ const SelfIntro = forwardRef<HTMLDivElement>((_props, ref) => {
       </div>
 
       <p className="text-sm leading-relaxed sm:text-lg text-muted-foreground/60">
-        22, based in India <India className="inline align-text-bottom mb-0.5" width={16} height={16} />. I build pixel-perfect UIs,{" "}
+        22, based in India <India className="inline align-text-bottom mb-0.5" width={16} height={16} />. I build <span className="text-foreground">pixel-perfect UIs</span>,{" "}
         <PixelCoinLink href={"https://x.com/biggbloo"}>games</PixelCoinLink>{" "}
-        and backends, and
-        sweat the small details. Find me on X as{" "}
+        and <span className="text-foreground">backends</span>, and
+        sweat the <span className="text-foreground">small details</span>. Find me on X as{" "}
         <PixelXCard href={"https://x.com/biggbloo"}>@biggbloo</PixelXCard>
         .
       </p>

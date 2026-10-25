@@ -4,7 +4,6 @@ export interface Work {
   video: string;
 }
 
-// Placeholder entries: swap in real titles, and drop the clips into public/works/.
 export const WORKS: Work[] = [
   {
     title: "Project One",

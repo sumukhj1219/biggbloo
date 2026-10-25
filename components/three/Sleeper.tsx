@@ -6,19 +6,15 @@ import { createPortal, useFrame } from "@react-three/fiber";
 import { Billboard, useTexture } from "@react-three/drei";
 import { SLEEPER_MARKER } from "./siteProps";
 
-// A strip of square pixel-art frames of someone napping, played slowly on a loop.
 const SHEET_URL = "/sprites/sleep.png";
 const FRAMES = 6;
 const FPS = 4;
-// Same frame size as the builder, so the pixels match.
 const HEIGHT = 1.3;
 
 const showFrame = (sheet: THREE.Texture, frame: number) => {
   sheet.offset.x = frame / FRAMES;
 };
 
-// Lies on the ledge on top of the monolith, at its marker's centre, turned to the camera. It's
-// a child of the monolith, so it rises with it and turns with it.
 const Sleeper = ({ monolith }: { monolith: THREE.Object3D }) => {
   const sheet = useTexture(SHEET_URL, (loaded) => {
     const t = Array.isArray(loaded) ? loaded[0] : loaded;

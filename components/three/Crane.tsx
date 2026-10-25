@@ -10,27 +10,20 @@ const ROPE = "#2a2420";
 const POST_RADIUS = 0.045;
 const BRACE_RADIUS = 0.022;
 const ROPE_RADIUS = 0.03;
-// Roughly square lattice panels up the tower.
 const PANEL_HEIGHT = 0.9;
 
-// One lift: wait at the bottom, winch up, wait at the top, lower back down.
 const WAIT_SECONDS = 1.6;
 const TRAVEL_SECONDS = 4;
 const CYCLE_SECONDS = 2 * (WAIT_SECONDS + TRAVEL_SECONDS);
-// Clearance kept between the raised carrier and the drum.
 const TOP_GAP = 1.2;
-// The carrier rises out of the ground on its own, once the rest of the scene is built.
 const ARRIVE_SECONDS = 1.1;
 const arriveEase = (x: number) => 1 - (1 - x) ** 4;
-// The worm turns faster than the drum it drives.
 const WORM_RATIO = 4;
 
 const UP = new THREE.Vector3(0, 1, 0);
 
 type Member = [THREE.Vector3, THREE.Vector3, number];
 
-// Lattice for a box spanning ±half.x, ±half.y and running the length of local Z: four corner
-// posts, a ring of rungs at every panel, and zigzag braces up each face.
 const latticeMembers = (half: THREE.Vector3): Member[] => {
   const panels = Math.max(1, Math.round((half.z * 2) / PANEL_HEIGHT));
   const corners = [
@@ -50,7 +43,6 @@ const latticeMembers = (half: THREE.Vector3): Member[] => {
   for (let level = 0; level < panels; level++) {
     corners.forEach((c, i) => {
       const next = corners[(i + 1) % 4];
-      // Alternate direction each panel so the braces zigzag up the face.
       const [from, to] = level % 2 === 0 ? [c, next] : [next, c];
       members.push([at(from, level), at(to, level + 1), BRACE_RADIUS]);
     });
@@ -68,7 +60,6 @@ const placeMember = (matrix: THREE.Matrix4, [a, b, radius]: Member) => {
   return matrix;
 };
 
-// 0 at the bottom, 1 at the top, easing in and out of each run.
 const liftAt = (seconds: number) => {
   const t = seconds % CYCLE_SECONDS;
   const ease = (x: number) => x * x * (3 - 2 * x);
@@ -90,8 +81,6 @@ const rigCrane = (scene: THREE.Object3D) => {
   tower.geometry.computeBoundingBox();
   const half = tower.geometry.boundingBox!.getSize(new THREE.Vector3()).multiplyScalar(0.5);
 
-  // Everything below is in the crane group's space, which isn't rotated. The drum's long
-  // axis is its local Y and runs across the tower; the rope pays off its far side.
   drum.geometry.computeBoundingBox();
   const drumBox = drum.geometry.boundingBox!;
   const drumRadius = (drumBox.max.x - drumBox.min.x) / 2;
@@ -103,7 +92,6 @@ const rigCrane = (scene: THREE.Object3D) => {
     : 0;
   const homeY = carrier.position.y;
   const ropeTop = drum.position.y;
-  // The ground is the scene's y = 0; the group sits at the crane's foot, just above it.
   const sink = homeY + carrierTop + group.position.y + 0.05;
 
   const spinners = [
@@ -124,7 +112,6 @@ const rigCrane = (scene: THREE.Object3D) => {
     sink,
     rise: Math.max(0, ropeTop - drumRadius - TOP_GAP - (homeY + carrierTop)),
     ropeTop,
-    // The rope leaves the drum's outer edge and hooks onto the middle of the carrier's roof.
     ropeTopPoint: new THREE.Vector3(drum.position.x - drumRadius, ropeTop, carrier.position.z),
     ropeX: carrier.position.x,
     ropeZ: carrier.position.z,
@@ -138,9 +125,6 @@ type Rig = NonNullable<ReturnType<typeof rigCrane>>;
 
 const SPIN = new THREE.Quaternion();
 
-// Winds the carrier up by `lifted` and turns the drum and gears to match. Winding the rope in
-// turns the drum by its length over the radius; the rope leaves the drum on the -X side, so
-// lifting is a clockwise turn seen from +Z, which is about the drum's -Y.
 const winch = (rig: Rig, lifted: number, rope: THREE.Object3D | null) => {
   rig.carrier.position.y = rig.homeY + lifted;
   const angle = -lifted / rig.drumRadius;
@@ -163,8 +147,6 @@ const hangRope = (rig: Rig, rope: THREE.Object3D) => {
 const GROUND = new THREE.Plane();
 const ORIGIN = new THREE.Vector3();
 
-// Hidden until `appearAt`, then rising out of the ground, clipped at it, and only then
-// starting its lifts. `since` is seconds since the scene opened.
 const stepCarrier = (rig: Rig, since: number, appearAt: number, rope: THREE.Object3D | null) => {
   const arrived = since - appearAt;
   const carrier = rig.carrier;
@@ -183,7 +165,6 @@ const stepCarrier = (rig: Rig, since: number, appearAt: number, rope: THREE.Obje
     if (rope) hangRope(rig, rope);
     return;
   }
-  // Let go of the clip once, so the scene's own clipping can take over again when it closes.
   if (rig.clipped && material) material.clippingPlanes = null;
   rig.clipped = false;
   winch(rig, liftAt(arrived - ARRIVE_SECONDS) * rig.rise, rope);
@@ -216,7 +197,6 @@ const Crane = ({ scene, appearAt }: { scene: THREE.Object3D; appearAt: number })
   const lattice = useRef<THREE.InstancedMesh>(null);
   const rope = useRef<THREE.Mesh>(null);
 
-  // Swap the solid tower for the lattice; put it back if the crane goes away.
   useLayoutEffect(() => {
     if (!rig) return;
     showTower(rig, false);

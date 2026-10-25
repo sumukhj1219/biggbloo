@@ -1,9 +1,5 @@
-// Shared bits for the pixel-art hover interactions in the intro.
-
-// Snaps motion to a few frames so it moves like a sprite, not a tween.
 export const steps = (n: number) => (t: number) => Math.floor(t * n) / n;
 
-// Draws a sprite from rows of palette keys; "." is transparent.
 export const PixelSprite = ({
   rows,
   colors,

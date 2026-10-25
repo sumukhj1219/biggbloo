@@ -24,6 +24,7 @@
 
 @theme inline {
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -49,14 +50,29 @@
 }
 
 @layer base {
-  /* Thinnest, palest scrollbar. Chromium and Safari get a 4px bar from the -webkit- rules;
-     Firefox has no such selector, so it takes the standard properties instead. (Chromium
-     would let those override the -webkit- rules with a wider "thin" bar.) */
   @supports not selector(::-webkit-scrollbar) {
     * {
       scrollbar-width: thin;
       scrollbar-color: oklch(0.9 0 0) transparent;
     }
+  }
+  ::selection {
+    background: transparent;
+    color: inherit;
+  }
+  input::selection,
+  textarea::selection {
+    background: oklch(0.92 0 0);
+  }
+  mark[data-hl] {
+    color: inherit;
+    border-radius: 3px;
+    padding-block: 0.1em;
+    box-shadow: inset 0 0 4px 0 var(--color-background);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
   }
   ::-webkit-scrollbar {
     width: 4px;

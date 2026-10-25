@@ -19,7 +19,6 @@ const links = [
 ];
 
 const Footer = () => (
-  // Extra bottom padding lifts the content clear of ScrollFade's bottom strip.
   <footer className="mt-auto pt-12 pb-12 sm:pt-16">
     <div className="flex items-center justify-between gap-x-4 border-t pt-6 text-xs text-muted-foreground/60 sm:text-sm">
       <span>© {new Date().getFullYear()} Sumukh</span>

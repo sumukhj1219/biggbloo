@@ -9,21 +9,17 @@ import type { XProfile } from "@/lib/x";
 const COLS = 32;
 const ROWS = 26;
 const CELLS = COLS * ROWS;
-// Integer hash, so the shuffle looks random but renders the same every time.
 const hash = (n: number) => {
   n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
   n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
   return (n ^ (n >>> 16)) >>> 0;
 };
-// ORDER[i] is when cell i drops out: cells sorted by hash, so neighbours go at unrelated times.
 const ORDER = new Array<number>(CELLS);
 Array.from({ length: CELLS }, (_, i) => i)
   .sort((a, b) => hash(a) - hash(b))
   .forEach((cell, rank) => (ORDER[cell] = rank));
-// Spread the whole reveal over ~0.6s however many cells there are; covering back up is quicker.
 const REVEAL_MS = 600;
 const COVER_MS = 360;
-// Static palette pulled from the banner's sky, shown while the profile is still loading.
 const NOISE = [
   "#1e40af",
   "#1d4ed8",
@@ -34,10 +30,8 @@ const NOISE = [
   "#e5e7eb",
 ];
 const NOISE_FPS = 14;
-// Rough final card height, so the static fills a card-shaped box before the content exists.
 const LOADING_HEIGHT = 262;
 
-// One fetch per page view, shared by every open of the card.
 let profilePromise: Promise<XProfile | null> | null = null;
 const loadProfile = () =>
   (profilePromise ??= fetch("/api/x-profile")
@@ -62,10 +56,8 @@ const loadImage = (src: string) => {
   return promise;
 };
 
-// Block sizes the banner sharpens through, as columns across its width; 0 is full resolution.
 const PIXEL_LEVELS = [8, 16, 32, 64, 128, 0];
 
-// Draws the banner on a canvas starting as a few chunky blocks, then sharpens it in steps.
 const PixelatedBanner = ({
   img,
   delay,
@@ -114,9 +106,6 @@ const PixelatedBanner = ({
 
 type CurtainMode = "loading" | "reveal" | "cover";
 
-// One canvas of pixel cells over the card. While loading every cell flickers blue static;
-// on reveal the cells drop out in shuffled order; on cover they fill back in with the page
-// colour, then onCovered fires so the card can unmount.
 const PixelCurtain = ({
   mode,
   onCovered,
@@ -125,8 +114,6 @@ const PixelCurtain = ({
   onCovered: () => void;
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // 0 = clear, 1 = static, 2 = page colour. Kept across mode changes so a re-hover mid-cover
-  // picks up from whatever is showing.
   const cells = useRef<Uint8Array>(new Uint8Array(CELLS).fill(1));
   const colors = useRef<string[]>(
     Array.from({ length: CELLS }, (_, i) => NOISE[hash(i) % NOISE.length]),
@@ -188,7 +175,6 @@ const PixelCurtain = ({
         ctx.fillStyle = state === 2 ? page : colors.current[i];
         const x = i % COLS;
         const y = (i / COLS) | 0;
-        // Snap to whole device pixels so neighbouring cells never leave hairline gaps.
         const x0 = Math.floor(x * cw);
         const y0 = Math.floor(y * ch);
         ctx.fillRect(
@@ -218,7 +204,6 @@ const PixelCurtain = ({
 
 type Loaded = { profile: XProfile; banner: HTMLImageElement };
 
-// Resolves once the profile, banner and avatar are all in the browser cache.
 let readyPromise: Promise<Loaded | null> | null = null;
 const loadAll = () =>
   (readyPromise ??= loadProfile()
@@ -234,9 +219,6 @@ const loadAll = () =>
     })
     .catch(() => null));
 
-// Hovering the handle pops your live X profile card below it. It opens straight away as
-// flickering pixel static, which dissolves into the card once the profile has loaded, and
-// the banner then sharpens from chunky pixels to full resolution.
 const PixelXCard = ({
   href,
   children,
@@ -247,14 +229,12 @@ const PixelXCard = ({
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [mounted, setMounted] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  // Set when the profile can't be fetched; the static then dissolves away and hovers stop opening it.
   const [failed, setFailed] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   const reduceMotion = useReducedMotion();
 
   const settle = (result: Loaded | null) => (result ? setLoaded(result) : setFailed(true));
 
-  // Warm everything up once the page is idle, so most hovers have nothing left to wait for.
   useEffect(() => {
     const idle =
       window.requestIdleCallback ??
@@ -262,8 +242,6 @@ const PixelXCard = ({
     idle(() => loadAll().then(settle));
   }, []);
 
-  // A short delay keeps a pass-through hover from flashing the card, and moving from the
-  // handle onto the card doesn't close it.
   const show = () => {
     if (failed) return;
     window.clearTimeout(timer.current);
@@ -373,7 +351,6 @@ const PixelXCard = ({
               <span className="block" style={{ height: LOADING_HEIGHT }} />
             )}
 
-            {/* Same soft edge fade as the Works cards. */}
             <span
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 shadow-[inset_0_0_32px_0px_var(--color-background)]"

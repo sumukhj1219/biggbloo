@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { ShutterType } from "./engine";
 import { FONT_VAR, FONT_WEIGHT, SKY } from "./params";
 
-// `accent` is the ink the GOAL text flashes in between its paper-coloured beats.
 export function GoalShutter({ accent = SKY }: { accent?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 

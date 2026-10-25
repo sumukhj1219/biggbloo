@@ -3,9 +3,7 @@
   align-items: center;
   justify-content: center;
   vertical-align: middle;
-  /* One base loop at speed=1; --dmx-speed from JS scales inversely with the speed prop */
   --dmx-cycle: 1500ms;
-  /* Rest / mid / bright — override via opacityBase, opacityMid, opacityPeak on the component */
   --dmx-opacity-base: 0.16;
   --dmx-opacity-mid: 0.32;
   --dmx-opacity-peak: 1;
@@ -23,7 +21,6 @@
   clip-path: none;
   display: block;
   background: var(--dmx-dot-fill, currentColor);
-  /* Matches prior 0.24 with default base/mid */
   opacity: calc(0.5 * (var(--dmx-opacity-base) + var(--dmx-opacity-mid)));
   --dmx-bloom-level: 0;
   transform-origin: center;
@@ -99,7 +96,6 @@
   will-change: opacity, filter;
 }
 
-/* Halo: modestly wider falloff than selective bloom (same --dmx-bloom-level on each dot). */
 .dmx-root.dmx-bloom-halo.dmx-bloom .dmx-dot {
   filter:
     drop-shadow(
@@ -129,14 +125,11 @@
   will-change: opacity, filter;
 }
 
-/* Bloom strength comes from inline --dmx-bloom-level (see opacityToBloomLevel). */
-
 .dmx-muted .dmx-dot {
   opacity: calc(0.44 * var(--dmx-opacity-mid));
   --dmx-bloom-level: 0;
 }
 
-/* Inactive off-cells (Base also sets inline opacity/animation:none so keyframes cannot win). */
 .dmx-dot.dmx-inactive {
   opacity: 0 !important;
   --dmx-bloom-level: 0;

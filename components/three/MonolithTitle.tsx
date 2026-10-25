@@ -13,8 +13,6 @@ const LINES = [
   { text: "Sumukh", size: 0.5, drop: 0.65 },
 ];
 
-// Finds the monolith's surface at height `y` on the side facing `face` (in the monolith's own
-// space), and turns content to sit flat on it, facing out.
 export const placeOnFace = (mesh: THREE.Mesh, y: number, face = FACE) => {
   mesh.geometry.computeBoundingBox();
   const box = mesh.geometry.boundingBox!;

@@ -1,8 +1,7 @@
 import Container from '@/components/common/Container'
 import WorkItems from './WorkItems'
-import React, { forwardRef } from "react";
+import { forwardRef } from "react";
 import SectionTitle from '@/components/common/SectionTitle'
-
 
 const WorkContent = forwardRef<HTMLDivElement>((_props, ref) => {
   return (

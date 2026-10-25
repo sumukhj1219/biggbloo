@@ -11,26 +11,19 @@ export const WORKBOARD = "Workboard-frame";
 export const WORKBOARD_ARM = "work-holder-rock";
 
 const OUT = new THREE.Vector3(1, 0, 0);
-// The hinge axis faces the Works side, so the whole swing plays out in front of the viewer.
 const HINGE = new THREE.Vector3(0, 0, 1);
-// Tucked away, the arm points straight back into the rock, with the board folded in after it.
 const CLOSED = Math.PI;
 const OPEN_SPRING = { type: "spring", bounce: 0.35, duration: 0.6 } as const;
 const CLOSE_SPRING = { type: "spring", bounce: 0, duration: 0.4 } as const;
-// Inset from the board's edges, leaving a thin wooden border round the screen.
 const SCREEN_INSET = 0.12;
 const SCREEN_LIFT = 0.005;
 
 type Rig = {
   parts: { obj: THREE.Mesh; home: THREE.Vector3; homeQuat: THREE.Quaternion }[];
-  // The monolith's +X face, in its own space; anything still behind it is inside the rock.
   faceX: number;
-  // Where the arm meets that face, in the parts' parent space.
   pivot: THREE.Vector3;
 };
 
-// Both parts hang off the monolith's +X side, and swing about the arm's inner end, where it
-// leaves the rock. A clip plane on the face hides whatever is still inside.
 const rigBoard = (scene: THREE.Object3D, monolith: THREE.Mesh): Rig | null => {
   const arm = scene.getObjectByName(WORKBOARD_ARM);
   const parts = [WORKBOARD, WORKBOARD_ARM]
@@ -49,8 +42,6 @@ const rigBoard = (scene: THREE.Object3D, monolith: THREE.Mesh): Rig | null => {
       obj.geometry.boundingBox!.clone().applyMatrix4(obj.matrix).applyMatrix4(toMonolith),
     );
   });
-  // The monolith tapers, so take its narrowest point over the parts' height: lower down, the
-  // gap to the true surface is inside the rock and hidden by it anyway.
   const faceX = Math.min(
     ...[bounds.min.y, bounds.max.y].map((y) => placeOnFace(monolith, y, OUT).position.x),
   );
@@ -65,7 +56,6 @@ const rigBoard = (scene: THREE.Object3D, monolith: THREE.Mesh): Rig | null => {
 
 const SWING = new THREE.Quaternion();
 
-// angle runs from CLOSED, folded into the rock and hidden, to 0, out where it was modelled.
 const placeBoard = ({ parts, pivot }: Rig, angle: number) => {
   SWING.setFromAxisAngle(HINGE, angle);
   parts.forEach(({ obj, home, homeQuat }) => {
@@ -86,9 +76,6 @@ const createVideo = () => {
   return { video, texture };
 };
 
-// Drawn from the render loop rather than the texture's own frame callback, which dispose()
-// cancels for good (and StrictMode disposes once on mount in dev). Also crops the clip to
-// fill the screen, like object-fit: cover.
 const refreshVideo = ({ video, texture }: ReturnType<typeof createVideo>, screenAspect: number) => {
   if (video.readyState < video.HAVE_CURRENT_DATA) return;
   texture.needsUpdate = true;
@@ -108,7 +95,6 @@ const unloadVideo = (video: HTMLVideoElement) => {
   video.load();
 };
 
-// One muted, looping video element; switching projects swaps its source.
 const useVideoTexture = (src: string) => {
   const clip = useMemo(() => createVideo(), []);
   useEffect(() => {
@@ -134,7 +120,6 @@ const WorkBoard = ({ scene, monolith, open, work }: WorkBoardProps) => {
   const angle = useRef(CLOSED);
   const plane = useMemo(() => new THREE.Plane(), []);
   const screen = useRef<THREE.Mesh>(null);
-  // Covers the board's whole front face (local X across, local Z up the board), less the inset.
   const face = useMemo(() => {
     if (!board) return null;
     board.geometry.computeBoundingBox();
@@ -148,7 +133,6 @@ const WorkBoard = ({ scene, monolith, open, work }: WorkBoardProps) => {
     };
   }, [board]);
 
-  // Start tucked away; the build animation doesn't know about these parts.
   useEffect(() => {
     if (!rig) return;
     placeBoard(rig, angle.current);
@@ -167,15 +151,12 @@ const WorkBoard = ({ scene, monolith, open, work }: WorkBoardProps) => {
     return () => controls.stop();
   }, [open, rig]);
 
-  // Declared after the source loads, so a newly picked project starts playing straight away.
   useEffect(() => {
     if (!open) return;
     video.play().catch(() => undefined);
     return () => video.pause();
   }, [open, video, work.video]);
 
-  // The plane follows the monolith as it spins. It's only needed while swinging: fully out, the
-  // parts show exactly as modelled, even where they overlap the rock's surface.
   useFrame(() => {
     if (face) refreshVideo(clip, face.width / face.height);
     if (!rig) return;

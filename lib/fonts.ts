@@ -1,8 +1,13 @@
-import { Figtree, Anton } from "next/font/google";
+import { Figtree, Anton, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 
 export const figtree = Figtree({
   variable: "--font-figtree",
+  subsets: ["latin"],
+});
+
+export const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
 });
 
@@ -12,7 +17,6 @@ export const anton = Anton({
   subsets: ["latin"],
 });
 
-// Same face the 3D scene's troika text loads from /fonts, for HTML that sits on top of it.
 export const amatic = localFont({
   src: "../public/fonts/AmaticSC-Bold.ttf",
   weight: "700",

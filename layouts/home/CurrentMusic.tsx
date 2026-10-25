@@ -1,5 +1,5 @@
 import MusicPlayer from "@/components/ui/MusicPlayer";
-import React, { forwardRef } from "react";
+import { forwardRef } from "react";
 
 const CurrentMusic = forwardRef<HTMLDivElement>((_props, ref) => {
   return (

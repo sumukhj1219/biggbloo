@@ -16,7 +16,6 @@ const HomePage = () => {
       <Reveal index={2}>
         <CurrentMusic />
       </Reveal>
-      {/*<FootballCard />*/}
       <Reveal index={4}>
         <WorkContent />
       </Reveal>

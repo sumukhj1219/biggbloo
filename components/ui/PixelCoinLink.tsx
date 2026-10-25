@@ -6,7 +6,6 @@ import { AnimatePresence, motion, useAnimate, useReducedMotion } from "motion/re
 import { playCoin } from "@/lib/sounds";
 import { PixelSprite, steps } from "./pixel";
 
-// 8x8 coin: K outline, Y face, L highlight, O shade.
 const COIN = [
   "..KKKK..",
   ".KYYYYK.",

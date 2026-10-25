@@ -6,24 +6,17 @@ import { createPortal, useFrame } from "@react-three/fiber";
 import { isBamboo, SCAFFOLD_GROUP } from "./siteProps";
 
 const CLOTH = "#2f6fce";
-// Weathering painted over the blue: mud splashed up from the ground, rain streaks down from the
-// bamboo, a few sun-faded patches, and fine grime.
 const MUD = "92, 72, 48";
 const GRIME = "35, 38, 44";
 const FADED = "150, 185, 225";
-// How far each cloth hangs below its crossbar, kept clear of the ground.
 const DROP = 4.8;
 const GROUND_CLEARANCE = 0.4;
-// A pole counts as part of a crossbar's bay when it stands this close to the crossbar's line.
 const BAY_REACH = 0.5;
-// Pinned along the top; the free bottom edge billows the most.
 const SWAY = 0.12;
 const SWAY_SPEED = 1.4;
 const SEGMENTS_X = 16;
 const SEGMENTS_Y = 10;
 
-// The bottom edge is torn: a ragged hem, with now and then a rip running up into the sheet.
-// Sizes are in scene units, so wide and narrow cloths fray alike.
 const FRAY = { min: 0.05, max: 0.32, step: [0.07, 0.22] };
 const RIP = { chance: 0.14, depth: [0.6, 1.4], width: [0.12, 0.3] };
 const TEAR_TEXELS = 512;
@@ -32,7 +25,6 @@ const UP = new THREE.Vector3(0, 1, 0);
 
 type Pole = { obj: THREE.Mesh; a: THREE.Vector3; b: THREE.Vector3; radius: number };
 
-// Bamboo is modelled long in local Y; returns its two ends and radius in the scaffold's space.
 const toPole = (obj: THREE.Mesh): Pole => {
   obj.updateMatrix();
   obj.geometry.computeBoundingBox();
@@ -49,8 +41,6 @@ const flat = (v: THREE.Vector3) => new THREE.Vector2(v.x, v.z);
 
 type Panel = { topLeft: THREE.Vector3; topRight: THREE.Vector3; height: number };
 
-// A cloth hangs under each crossbar, between the two farthest-apart uprights standing on its
-// line, so only the bays with a crossbar get covered.
 const findPanels = (poles: Pole[], groundY: number): Panel[] => {
   const isUpright = (p: Pole) => Math.abs(p.b.clone().sub(p.a).normalize().dot(UP)) > 0.9;
   const uprights = poles.filter(isUpright);
@@ -75,7 +65,6 @@ const findPanels = (poles: Pole[], groundY: number): Panel[] => {
       const at = (t: number) => bar.a.clone().lerp(bar.b, t / length);
       const topLeft = at(stops[0]);
       const topRight = at(stops[stops.length - 1]);
-      // Hang from just under the bamboo.
       const top = (topLeft.y + topRight.y) / 2 - bar.radius;
       topLeft.y = top;
       topRight.y = top;
@@ -86,7 +75,6 @@ const findPanels = (poles: Pole[], groundY: number): Panel[] => {
 
 const clothGeometry = () => {
   const geometry = new THREE.PlaneGeometry(1, 1, SEGMENTS_X, SEGMENTS_Y);
-  // Keep each vertex's spot on the sheet: u across, v down from the pinned top edge.
   const uv = geometry.attributes.uv;
   const sheet = new Float32Array(uv.count * 2);
   for (let i = 0; i < uv.count; i++) {
@@ -97,7 +85,6 @@ const clothGeometry = () => {
   return geometry;
 };
 
-// Small seeded generator, so each cloth keeps the same tear every time the scene loads.
 const seeded = (seed: number) => () => {
   seed = (seed + 0x6d2b79f5) | 0;
   let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
@@ -105,7 +92,6 @@ const seeded = (seed: number) => () => {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
 
-// An alpha mask for the sheet: white keeps cloth, black along the bottom is torn away.
 const tearMask = (panel: Panel, seed: number) => {
   const random = seeded(seed);
   const between = ([lo, hi]: number[]) => lo + random() * (hi - lo);
@@ -164,7 +150,6 @@ const dirtMap = (panel: Panel, seed: number) => {
     blot(random() * w, random() * h * 0.7, (0.2 + random() * 0.25) * w, FADED, 0.18);
   }
 
-  // Mud thickens towards the bottom edge.
   const mud = ctx.createLinearGradient(0, h * 0.55, 0, h);
   mud.addColorStop(0, `rgba(${MUD}, 0)`);
   mud.addColorStop(1, `rgba(${MUD}, 0.55)`);
@@ -175,7 +160,6 @@ const dirtMap = (panel: Panel, seed: number) => {
     blot(random() * w, y, (0.02 + random() * 0.08) * w, MUD, 0.2 + random() * 0.3);
   }
 
-  // Rain streaks running down from under the bamboo.
   ctx.lineCap = "round";
   for (let i = 0; i < 14; i++) {
     const x = random() * w;
@@ -203,8 +187,6 @@ const dirtMap = (panel: Panel, seed: number) => {
 
 const POINT = new THREE.Vector3();
 
-// Lays the sheet between the panel's top corners and hanging down, then ripples it out of its
-// plane, more towards the free bottom edge.
 const drapeCloth = (geometry: THREE.BufferGeometry, panel: Panel, time: number) => {
   const { topLeft, topRight, height } = panel;
   const across = topRight.clone().sub(topLeft);
@@ -236,11 +218,9 @@ const Scaffold = ({ scene }: { scene: THREE.Object3D }) => {
     const poles = group.children
       .filter((obj): obj is THREE.Mesh => obj instanceof THREE.Mesh && isBamboo(obj.name))
       .map(toPole);
-    // The scene's ground is y = 0, which in the group's space is below its origin.
     const panels = findPanels(poles, -group.position.y);
     const cloths = panels.map((panel, i) => {
       const tear = tearMask(panel, i + 1);
-      // Shadows go through the same mask, so the tear shows on the ground too.
       const depth = new THREE.MeshDepthMaterial({
         depthPacking: THREE.RGBADepthPacking,
         alphaMap: tear,

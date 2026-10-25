@@ -6,7 +6,6 @@ import { createPortal } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import { FONT_URL, INK } from "./SideboardNav";
 
-// Blender names (including the "Intrests" typo) mapped to the label painted on each plank.
 export const PLANK_LABELS: Record<string, string> = {
   "Works-Plank": "Works",
   "Intrests-Plank": "Interests",
@@ -17,8 +16,6 @@ const FONT_SIZE = 0.5;
 const FACE_LIFT = 0.005;
 const UP = new THREE.Vector3(0, 1, 0);
 
-// Each plank is a thin slab whose thinnest axis is local Y; the label goes on whichever side
-// faces away from the monolith, upright with the world so it reads level from outside.
 const placeOnPlank = (plank: THREE.Mesh, monolith: THREE.Object3D) => {
   plank.geometry.computeBoundingBox();
   const box = plank.geometry.boundingBox!;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Matter from "matter-js";
 import { motion, AnimatePresence } from "motion/react";
@@ -25,7 +25,6 @@ const PHYSICS_WIDTH = 800;
 const PHYSICS_HEIGHT = 400;
 const ASPECT = PHYSICS_WIDTH / PHYSICS_HEIGHT;
 
-// Thick walls so a hard kick can't tunnel the ball through them in a single physics step.
 const WALL_THICKNESS = 80;
 const GOAL_HEIGHT = 130;
 const BALL_RADIUS = 8;
@@ -58,12 +57,10 @@ const MIN_BALL_SPEED = 0.8;
 const MAX_BALL_SPEED = 16;
 
 const OUTFIELD_PIXEL = 3;
-// How many grass cells reach in over the pitch edge, so the two blend instead of meeting at a line.
 const OUTFIELD_OVERLAP = 4;
 const OUTFIELD_GREENS = ["#4a5409", "#5E680D", "#6b7616", "#7a8622", "#86912C"];
 const OUTFIELD_BLADE = "#9aa63a";
 
-// Stable per-cell noise so the grass doesn't reshuffle on every resize.
 const cellNoise = (x: number, y: number, seed: number) => {
   let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(seed, 2147483647);
   h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -72,9 +69,6 @@ const cellNoise = (x: number, y: number, seed: number) => {
 
 type FringeView = { canvas: HTMLCanvasElement; x: number; y: number; w: number; h: number };
 
-// Paints pixel grass around the pitch that dissolves the further it gets from the touchline.
-// The ragged fringe of grass that reaches in over the pitch edge goes to `fringe`, which the
-// game draws under its players so it never hides the ball.
 const drawOutfield = (
   canvas: HTMLCanvasElement,
   fringe: HTMLCanvasElement,
@@ -107,13 +101,10 @@ const drawOutfield = (
       const dx = Math.max(left - x - 0.5, x + 0.5 - right, 0);
       const dy = Math.max(top - y - 0.5, y + 0.5 - bottom, 0);
       const t = Math.hypot(dx, dy) / band;
-      // Mix fine and clumpy noise so the edge breaks up into patches, not static.
       const n = 0.65 * cellNoise(x, y, 1) + 0.35 * cellNoise(x >> 2, y >> 2, 2);
       let target = octx;
       if (t === 0) {
         const inset = Math.min(x + 0.5 - left, right - x - 0.5, y + 0.5 - top, bottom - y - 0.5);
-        // Cells straddling the pitch edge get solid grass underneath, so no page shows
-        // through the sub-cell gap between the outfield and the pitch.
         if (inset < 1) {
           const shade = Math.floor(cellNoise(x, y, 4) * OUTFIELD_GREENS.length);
           octx.fillStyle = OUTFIELD_GREENS[shade];
@@ -134,11 +125,9 @@ const drawOutfield = (
   return { canvas: fringe, x: left, y: top, w: right - left, h: bottom - top };
 };
 
-// Stadium light: sun spills in from the top-left corner over the stand's roof line, the rest of
-// the pitch sits in the stand's shadow, and a cloud shadow drifts across every so often.
-const SUN_EDGE = 0.42; // where the roof shadow's edge falls, along the corner-to-corner diagonal
+const SUN_EDGE = 0.42;
 const SUN_SOFTNESS = 0.07;
-const SHADE_TINT = "#b4bccb"; // multiplied over the shaded part: darker and a touch cooler
+const SHADE_TINT = "#b4bccb";
 const SUN_WARMTH = "rgba(255, 228, 170, 0.22)";
 const SUN_GLOW = "rgba(255, 240, 205, 0.35)";
 const CLOUD_PERIOD_MS = 30000;
@@ -147,7 +136,6 @@ const VIGNETTE = "#c9cfd8";
 const CLOUD_ALPHA = 0.55;
 const LIGHT_RES = 2;
 
-// The shadow/sun split never changes, so it's painted once into an offscreen light map.
 const makeLightMaps = () => {
   const w = PHYSICS_WIDTH * LIGHT_RES;
   const h = PHYSICS_HEIGHT * LIGHT_RES;
@@ -157,7 +145,6 @@ const makeLightMaps = () => {
     c.height = h;
     return { c, g: c.getContext("2d") };
   };
-  // Gradient across the diagonal from the sunny corner, with a soft roof-shadow edge.
   const diagonal = (g: CanvasRenderingContext2D, lit: string, shade: string) => {
     const grad = g.createLinearGradient(0, 0, w * 0.75, h);
     grad.addColorStop(0, lit);
@@ -171,7 +158,6 @@ const makeLightMaps = () => {
   if (shade.g) {
     shade.g.fillStyle = diagonal(shade.g, "#ffffff", SHADE_TINT);
     shade.g.fillRect(0, 0, w, h);
-    // Broadcast-style falloff: the touchlines and corners sit a touch darker than the middle.
     const vignette = shade.g.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, w * 0.62);
     vignette.addColorStop(0, "#ffffff");
     vignette.addColorStop(1, VIGNETTE);
@@ -184,7 +170,6 @@ const makeLightMaps = () => {
   if (sun.g) {
     sun.g.fillStyle = diagonal(sun.g, SUN_WARMTH, "rgba(255, 228, 170, 0)");
     sun.g.fillRect(0, 0, w, h);
-    // Light bloom spilling from beyond the corner; the sun itself stays off-pitch.
     const glow = sun.g.createRadialGradient(-w * 0.05, -h * 0.1, 0, -w * 0.05, -h * 0.1, w * 0.45);
     glow.addColorStop(0, SUN_GLOW);
     glow.addColorStop(1, "rgba(255, 240, 205, 0)");
@@ -192,7 +177,6 @@ const makeLightMaps = () => {
     sun.g.fillRect(0, 0, w, h);
   }
 
-  // A lumpy cloud shadow built from overlapping soft puffs.
   const cloud = document.createElement("canvas");
   cloud.width = PHYSICS_WIDTH * 0.7 * LIGHT_RES;
   cloud.height = PHYSICS_HEIGHT * 0.8 * LIGHT_RES;
@@ -220,8 +204,6 @@ const makeLightMaps = () => {
   return { shade: shade.c, sun: sun.c, cloud };
 };
 
-// The turf is static, so it's painted once: mown stripes with a cross-cut, uneven colour from
-// patchy growth, scuffed goalmouths and spots where players stand most, and fine grain.
 const STRIPE_COUNT = 10;
 const STRIPE_COLORS = ["#86912C", "#5E680D"];
 const CROSS_CUT_BANDS = 6;
@@ -242,7 +224,6 @@ const makeTurf = () => {
     g.fillStyle = STRIPE_COLORS[i % 2];
     g.fillRect(i * stripeW, 0, stripeW, H);
   }
-  // Mowing the other way too leaves a faint checkerboard across the stripes.
   const bandH = H / CROSS_CUT_BANDS;
   for (let i = 0; i < CROSS_CUT_BANDS; i++) {
     g.fillStyle = i % 2 === 0 ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.04)";
@@ -256,7 +237,6 @@ const makeTurf = () => {
     g.fillStyle = grad;
     g.fillRect(x - r, y - r, r * 2, r * 2);
   };
-  // Patchy growth: broad, faint light and dark blotches.
   for (let i = 0; i < 70; i++) {
     const light = Math.random() < 0.5;
     blot(
@@ -267,7 +247,6 @@ const makeTurf = () => {
     );
   }
 
-  // Worn turf where play concentrates, with scattered bare specks around each patch.
   const midY = H / 2;
   const wear = (x: number, y: number, rx: number, ry: number, specks: number) => {
     g.save();
@@ -288,7 +267,6 @@ const makeTurf = () => {
   wear(W - PENALTY_SPOT_X, midY, 10, 10, 25);
   wear(W / 2, midY, 22, 22, 60);
 
-  // Fine grain so the grass doesn't read as flat paint.
   const grain = g.createImageData(turf.width, turf.height);
   for (let i = 0; i < grain.data.length; i += 4) {
     const v = Math.random() * 255;
@@ -600,7 +578,6 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
         }
       }
 
-      // Anything that escapes the pitch other than through a goal mouth is put back in play.
       const out = BALL_RADIUS * 2;
       const { x: bx, y: by } = ball.position;
       const inGoalMouth = Math.abs(by - PHYSICS_HEIGHT / 2) < GOAL_HEIGHT / 2 + out;
@@ -752,7 +729,6 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
         ctx.restore();
       });
 
-      // Contact shadows for players and ball, cast away from the sun in the top-left corner.
       ctx.save();
       ctx.fillStyle = "rgba(0,0,0,0.28)";
       rodStates.forEach((rod) => {
@@ -850,7 +826,6 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
       drawLighting(performance.now());
     };
 
-    // Lighting goes over everything, players and ball included, so they share the pitch's light.
     const drawLighting = (now: number) => {
       ctx.save();
       ctx.globalCompositeOperation = "multiply";
@@ -858,7 +833,6 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
       ctx.globalCompositeOperation = "screen";
       ctx.drawImage(lightMaps.sun, 0, 0, PHYSICS_WIDTH, PHYSICS_HEIGHT);
 
-      // One cloud crosses per period, drifting left to right and slightly down.
       const cw = lightMaps.cloud.width / LIGHT_RES;
       const ch = lightMaps.cloud.height / LIGHT_RES;
       const t = (now % CLOUD_PERIOD_MS) / CLOUD_PERIOD_MS;
@@ -1015,7 +989,6 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
               </motion.div>
             )}
           </AnimatePresence>
-          {/* Full time: the pitch blurs out and the final score rises slowly into the centre. */}
           <AnimatePresence>
             {finished && (
               <motion.div

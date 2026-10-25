@@ -3,8 +3,6 @@ const edges = [
   { side: "bottom-0", dir: "to top" },
 ] as const;
 
-// Fixed fades at the viewport's top and bottom so content dissolves into the
-// background as it scrolls past, instead of being cut off at the edge.
 const ScrollFade = () => (
   <>
     {edges.map(({ side, dir }) => (

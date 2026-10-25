@@ -1,4 +1,3 @@
-// Public X profile via the fxtwitter API, which needs no key. Cached for an hour.
 const API_ENDPOINT = "https://api.fxtwitter.com/";
 
 export interface XProfile {
@@ -38,7 +37,6 @@ export const getXProfile = async (handle: string): Promise<XProfile> => {
     name: user.name,
     handle: user.screen_name,
     bio: user.description.replace(/^•\s*/, "").replace(/https?:\/\//g, ""),
-    // The API hands back the 48px avatar and the unsized banner; ask for the larger renditions.
     avatarUrl: user.avatar_url?.replace("_normal.", "_400x400.") ?? null,
     bannerUrl: user.banner_url ? `${user.banner_url}/600x200` : null,
     followers: user.followers,

@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
 
 const nextConfig: NextConfig = {
-  // Lets posts in content/writings be imported as MDX modules.
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   transpilePackages: ["three"],
   allowedDevOrigins: [
@@ -12,6 +11,10 @@ const nextConfig: NextConfig = {
     "*.ngrok.dev",
     "*.ngrok.io",
   ],
+
+  async rewrites() {
+    return [{ source: "/writings/:slug.md", destination: "/writings/:slug/md" }];
+  },
 
   async headers() {
     return [
@@ -30,6 +33,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-const withMDX = createMDX();
+const withMDX = createMDX({
+  options: {
+    remarkPlugins: ["remark-gfm"],
+    rehypePlugins: [["rehype-pretty-code", { theme: "github-light", keepBackground: false }]],
+  },
+});
 
 export default withMDX(nextConfig);

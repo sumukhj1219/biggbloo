@@ -44,13 +44,11 @@ import {
 } from "./edgeFade";
 
 const ROCK_URL = "/models/rock.glb";
-// The clock modelled on the holder rock isn't shown; GLTFLoader strips dots, so "Frame.001" is "Frame001".
 const HIDDEN_PARTS = ["Frame001", "Gear001", "Hour", "Minute", "Seconds"];
 
 const useRockScene = () => {
   const { scene } = useGLTF(ROCK_URL);
   HIDDEN_PARTS.forEach((name) => scene.getObjectByName(name)?.removeFromParent());
-  // Once construction is over, the whole site is left out of the scene.
   if (!UNDER_CONSTRUCTION) {
     scene.children
       .filter((obj) => isConstruction(obj.name))
@@ -71,7 +69,6 @@ const GRAIN_ALONG = new THREE.Vector3(8, 0.6, 8);
 const GRAIN_ALONG_WIDE = new THREE.Vector3(1.2, 0.15, 1.2);
 const GRAIN_ALONG_PLANK = new THREE.Vector3(8, 8, 0.6);
 
-// Bamboo poles are long in local Y, so the grain runs up them.
 const BAMBOO: [color: string, grain: string] = ["#cfae5c", "#b38f42"];
 
 const WOOD_PARTS: Record<string, [color: string, grain: string, direction: THREE.Vector3]> = {
@@ -91,8 +88,6 @@ const GOLD: [color: string, noise: string] = ["#d9a84e", "#c99a43"];
 
 type Stripes = { colors: [string, string]; axis: THREE.Vector3; period: number };
 
-// Construction-site paint. Stripes run along each part's own axes: up the posts and cones, and
-// at 45° across the barricade boards, which are long in X and tall in Y.
 const SITE_LOOK: Record<SitePart, [color: string, noise: string, stripes?: Stripes]> = {
   base: CEMENT,
   holder: [
@@ -121,12 +116,10 @@ const METAL_PARTS: Record<string, [color: string, noise: string]> = {
   Gear: GOLD,
   "Worm Gear": ["#8d939e", "#7f8590"],
   Worm_Gear: ["#8d939e", "#7f8590"],
-  // The crane's winch on top, and the loads it works with.
   [CRANE.gear]: GOLD,
   [CRANE.worm]: GOLD,
   [CRANE.drum]: GOLD,
   [CRANE.carrier]: CEMENT,
-  // GLTFLoader strips dots, so Blender's "brick.001" loads as "brick001".
   brick: CEMENT,
   brick001: CEMENT,
 };
@@ -232,7 +225,6 @@ const BG_FADE_IN_MS = 2000;
 const BG_FADE_OUT_MS = 1200;
 
 const BUILD_EASE = [0.22, 1, 0.36, 1] as const;
-// The site props rise out of the ground first; the monolith's build follows on after them.
 const PROPS_LEAD = UNDER_CONSTRUCTION ? 1.4 : 0;
 const BUILD = {
   landscape: { delay: 0, duration: 0.9, drop: 1.5 },
@@ -246,7 +238,6 @@ const BUILD = {
   grass: { delay: PROPS_LEAD + 3.5, duration: 0.9 },
 };
 
-// The crane's carrier arrives on its own, once everything else is up.
 const BUILD_END = BUILD.grass.delay + BUILD.grass.duration;
 
 const ROTOR_ORDER = ["Rotor", "Gear", "Worm"];
@@ -263,7 +254,6 @@ const groundClip = (root: THREE.Object3D, objects: THREE.Object3D[]) => {
   root.updateWorldMatrix(true, false);
   const groundY = root.localToWorld(new THREE.Vector3()).y;
   const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -groundY);
-  // Groups (the site props) clip every mesh inside them.
   const meshes: THREE.Mesh[] = [];
   objects.forEach((obj) => {
     if (obj instanceof THREE.Mesh) meshes.push(obj);
@@ -379,7 +369,6 @@ type Spin = {
 
 const GEAR_FADE_MS = 250;
 
-// Each turn restarts the gear grind; it fades out once the monolith settles.
 const startGear = (spin: Spin) => {
   const gear = getSound("gear");
   if (spin.sound !== null) gear.stop(spin.sound);
@@ -392,8 +381,6 @@ const stopGear = (spin: Spin, fade = GEAR_FADE_MS) => {
   spin.sound = null;
 };
 
-// While the site is under construction the monolith is locked: the controls still grind, but
-// only for a moment, and nothing turns.
 const JAM_MS = 350;
 
 const jamGear = (spin: Spin) => {
@@ -481,7 +468,6 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
     controls.push(tween(landscape.position, { y }, { ...ease, ...BUILD.landscape }));
   }
 
-  // The crank grinds from shortly after the build starts until everything is fully up.
   const stopCrank = playSoundAfter("crank", CRANK_DELAY);
   const unclipProps = groundClip(root, siteProps);
   const propRises = siteProps.map((prop, i) => {
@@ -576,7 +562,6 @@ const playBuild = (parts: BuildParts, root: THREE.Object3D) => {
 type Build = ReturnType<typeof playBuild>;
 
 const TEARDOWN_EASE = [0.55, 0, 1, 0.45] as const;
-// Same order as the build: the site props sink away first, then the monolith comes down.
 const PROPS_TAIL = UNDER_CONSTRUCTION ? 0.8 : 0;
 const TEARDOWN = {
   siteProps: { delay: 0, stagger: 0.1, duration: 0.6 },
@@ -744,7 +729,6 @@ const Rock = ({ closing, onClosed }: RockProps) => {
         name,
         createNoiseMaterial(color, noise, perlin, noiseScale),
       ]),
-      // Its own copy of the rock, so clipping it while it slides out leaves the monolith alone.
       [WORKBOARD_ARM, createNoiseMaterial(ROCK_COLOR, ROCK_NOISE_COLOR, perlin, noiseScale)],
     ]);
     const siteMaterial = (part: SitePart) => {
@@ -872,7 +856,6 @@ const Rock = ({ closing, onClosed }: RockProps) => {
 
   const build = useRef<Build | null>(null);
 
-  // Load the clips while the model is still fetching so the first crank isn't late.
   useEffect(() => {
     getSound("crank");
     getSound("gear");
@@ -880,8 +863,6 @@ const Rock = ({ closing, onClosed }: RockProps) => {
 
   const bgSound = useRef<number | null>(null);
 
-  // Quiet looping ambience that eases in with the scene and drifts out when it closes.
-  // It only starts once loaded, so an unmount before then has nothing queued to undo.
   useEffect(() => {
     const bg = getSound("cozyBg");
     let id: number | null = null;

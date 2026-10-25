@@ -4,7 +4,6 @@ import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import HoverChecker from "@/components/ui/HoverChecker";
 
-// Coloured label with the checker that slides in on hover, as used for section headings.
 const SectionTitle = ({
   bg,
   fill,
