@@ -1,0 +1,170 @@
+export const metadata = {
+  title: "Optimizing Next.js for heavy animations",
+  description: "How I keep a site full of 3D scenes, canvas effects and pixel transitions smooth, with the exact techniques and code.",
+  date: "2026-10-25",
+};
+
+This site is not light. There's a 3D scene built with Three.js behind the **Magic** button, a profile card that dissolves in from pixel static, a coin that pops out of a word, smooth scrolling everywhere, and a reading mode that masks the page around whatever you select. It still loads fast and stays at a steady frame rate on a mid-range laptop.
+
+None of that comes from one clever trick. It comes from a handful of rules I now apply to every animation before it ships. Here they are, with the real code from this site.
+
+## 1. Don't ship what the first screen doesn't need
+
+The biggest performance win has nothing to do with animation at all: it's not sending the code until someone asks for it. Three.js, its helpers and my scene add up to hundreds of kilobytes, and most visitors never open it. So the scene is loaded on demand, and only in the browser:
+
+```tsx
+"use client";
+
+import dynamic from "next/dynamic";
+
+const RockScene = dynamic(() => import("@/components/three/RockScene"), {
+  ssr: false,
+});
+```
+
+`next/dynamic` splits the scene into its own chunk, and `ssr: false` skips rendering it on the server, which a WebGL canvas can't do anyway. The home page never downloads any of it. The chunk is fetched the first time **Magic** is clicked.
+
+Do this for anything heavy that sits behind an interaction: 3D, physics engines, video players, big chart libraries. If it isn't visible on load, it shouldn't be in the first bundle.
+
+## 2. Animate only what the compositor can handle
+
+Browsers draw a frame in three broad steps: layout (where things go), paint (what they look like) and composite (stacking the painted layers). Changing `width`, `top` or `margin` forces layout and paint again, every frame. Changing `transform` and `opacity` can usually skip straight to compositing, which is cheap and often runs off the main thread.
+
+So the rule is simple: move things with `transform`, fade them with `opacity`, and avoid animating anything else unless you've measured it.
+
+```tsx
+// Smooth: compositor only
+<motion.div animate={{ x: 120, opacity: 1 }} />
+
+// Janky: layout and paint every frame
+<motion.div animate={{ left: 120, height: 300 }} />
+```
+
+Be careful with `filter: blur()` and `box-shadow`. They look great, but they're paint-heavy. I use small blurs on short entrance animations, never on anything that animates continuously.
+
+## 3. Keep animation out of React's render cycle
+
+React is great at describing what the UI should look like. It's a poor choice for updating something 60 times a second. If a value changes on every mouse move or every frame and you store it in state, the whole component re-renders every frame.
+
+Motion's motion values solve this. They update the DOM directly without re-rendering. The profile card used to tilt with the cursor like this:
+
+```tsx
+const mx = useMotionValue(0.5);
+const rotateY = useSpring(useTransform(mx, [0, 1], [-12, 12]), {
+  stiffness: 200,
+  damping: 18,
+});
+
+const tilt = (e: React.PointerEvent<HTMLElement>) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  mx.set((e.clientX - r.left) / r.width);
+};
+
+<motion.a onPointerMove={tilt} style={{ rotateY }} />;
+```
+
+No `useState` and no re-renders, just a value flowing straight into a `transform`.
+
+When you aren't using Motion, the same idea works with refs and CSS variables. The selection mask on blog posts writes the selection's position straight onto an element, so selecting text never re-renders the post:
+
+```ts
+root.style.setProperty("--focus-top", `${rect.top - box.top}px`);
+root.style.setProperty("--focus-bottom", `${rect.bottom - box.top}px`);
+```
+
+## 4. One canvas beats a thousand DOM nodes
+
+My first version of the pixel dissolve on the X card used a grid of animated `<span>` elements. At 16×13 cells it was fine. When I made the pixels smaller, 32×26, that became 832 separately animated elements, and you could feel it.
+
+The fix was to draw the whole effect on a single `<canvas>` with one `requestAnimationFrame` loop:
+
+```ts
+const tick = (now: number) => {
+  const progress = (now - start) / REVEAL_MS;
+  ctx.clearRect(0, 0, w, h);
+  for (let i = 0; i < CELLS; i++) {
+    if (ORDER[i] / CELLS <= progress) continue; // already revealed
+    ctx.fillStyle = colors[i];
+    ctx.fillRect((i % COLS) * cw, Math.floor(i / COLS) * ch, cw, ch);
+  }
+  if (progress < 1) frame = requestAnimationFrame(tick);
+};
+```
+
+One element, one loop, and the browser only composites one layer. If an effect involves hundreds of moving pieces, such as particles, pixels or confetti, reach for a canvas instead of the DOM.
+
+## 5. Do work only when it can be seen, or when nothing else is happening
+
+Animations that run off screen still cost CPU and battery. Pause them when they leave the viewport:
+
+```ts
+const observer = new IntersectionObserver(([entry]) => {
+  if (entry.isIntersecting) video.play();
+  else video.pause();
+});
+observer.observe(video);
+```
+
+The flip side is to do expensive preparation when the browser is idle, so it's ready before anyone needs it. The X card fetches the profile and decodes both images during idle time after the page loads, so most hovers have nothing left to wait for:
+
+```ts
+const idle = window.requestIdleCallback ?? ((cb) => setTimeout(cb, 1500));
+idle(() => preloadProfileAndImages());
+```
+
+## 6. Throttle noisy events to one update per frame
+
+Events like `scroll`, `pointermove` and `selectionchange` can fire many times within a single frame. Handling every one wastes work the screen will never show. Collapse them into at most one update per frame:
+
+```ts
+let frame = 0;
+const onSelectionChange = () => {
+  cancelAnimationFrame(frame);
+  frame = requestAnimationFrame(update);
+};
+document.addEventListener("selectionchange", onSelectionChange);
+```
+
+Inside `update`, read everything you need first, such as `getBoundingClientRect()`, and only then write styles. Interleaving reads and writes forces the browser to recalculate layout repeatedly. This is called layout thrashing.
+
+## 7. Let the server handle everything that doesn't move
+
+In the App Router, components are Server Components by default, and they send no JavaScript to the browser. Only the interactive pieces need `"use client"`. On this site, blog posts are rendered on the server and generated as static HTML at build time. The only client code on a post page is the handful of small interactive pieces: the copy buttons, the selection tooltip and the highlight restorer.
+
+The same goes for anything you can compute ahead of time. Code blocks in these posts are syntax-highlighted at build time with Shiki, so there's no highlighter running in your browser. Fonts come from `next/font`, which self-hosts them and avoids layout shift when they load. Less JavaScript on the page leaves more of the main thread free for the animations.
+
+## 8. Respect reduced motion
+
+Some people get dizzy or distracted by motion, and they've told their operating system so. Honor it:
+
+```tsx
+const reduceMotion = useReducedMotion();
+
+<motion.div animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }} />;
+```
+
+On this site, reduced motion turns the pixel dissolve into a plain appearance, skips the coin's sparks, and turns off smooth-scroll easing. It's also a performance win for people on slower devices who choose it.
+
+## 9. Measure, don't guess
+
+Every rule above came from measuring something that felt slow, not from guessing. The tools I reach for:
+
+- **Chrome DevTools → Performance.** Record a few seconds of the animation and look for long tasks and red frames.
+- **Rendering → Paint flashing.** Shows what repaints every frame. If the whole page flashes, something is animating a paint-heavy property.
+- **Rendering → Frame rendering stats.** A live frame-rate meter while you interact.
+- **React DevTools → Profiler.** Catches components re-rendering on every frame.
+- **Lighthouse and Interaction to Next Paint (INP).** Make sure the page responds quickly when someone clicks.
+
+## The checklist
+
+- Load heavy libraries with `next/dynamic` and only when they're needed.
+- Animate `transform` and `opacity`; be careful with blur and shadows.
+- Keep per-frame values out of React state: use motion values, refs or CSS variables.
+- Use one canvas for effects with many moving pieces.
+- Pause what's off screen; prepare what's coming during idle time.
+- Throttle scroll and pointer handlers to one update per frame, and read before you write.
+- Keep everything that doesn't move on the server.
+- Respect `prefers-reduced-motion`.
+- Measure before and after every change.
+
+Heavy animation and a fast site aren't opposites. Most of the work is making sure the browser only does what you actually see.

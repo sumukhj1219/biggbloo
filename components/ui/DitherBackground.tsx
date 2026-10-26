@@ -22,11 +22,10 @@ const hexToRgb = (hex: string) => {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 };
 
-const COLORS = PALETTE.map(hexToRgb);
-
-const draw = (canvas: HTMLCanvasElement) => {
-  const width = Math.max(1, Math.ceil(canvas.clientWidth / PIXEL));
-  const height = Math.max(1, Math.ceil(canvas.clientHeight / PIXEL));
+const draw = (canvas: HTMLCanvasElement, palette: string[], pixel: number) => {
+  const COLORS = palette.map(hexToRgb);
+  const width = Math.max(1, Math.ceil(canvas.clientWidth / pixel));
+  const height = Math.max(1, Math.ceil(canvas.clientHeight / pixel));
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
@@ -51,17 +50,27 @@ const draw = (canvas: HTMLCanvasElement) => {
   ctx.putImageData(image, 0, 0);
 };
 
-const DitherBackground = ({ className }: { className?: string }) => {
+const DitherBackground = ({
+  className,
+  palette = PALETTE,
+  pixel = PIXEL,
+}: {
+  className?: string;
+  palette?: string[];
+  pixel?: number;
+}) => {
   const ref = useRef<HTMLCanvasElement>(null);
+  const key = palette.join();
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    draw(canvas);
-    const observer = new ResizeObserver(() => draw(canvas));
+    const colors = key.split(",");
+    draw(canvas, colors, pixel);
+    const observer = new ResizeObserver(() => draw(canvas, colors, pixel));
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, []);
+  }, [key, pixel]);
 
   return (
     <canvas

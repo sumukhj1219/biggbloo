@@ -32,6 +32,8 @@ const readingMinutes = async (slug: string) => {
 export const getSlugs = async () =>
   (await fs.readdir(DIR)).filter((f) => f.endsWith(".mdx")).map((f) => f.replace(/\.mdx$/, ""));
 
+export const hasWriting = async (slug: string) => (await getSlugs()).includes(slug);
+
 export const getWriting = async (slug: string) => {
   const [{ default: Content, metadata }, minutes] = await Promise.all([
     loadModule(slug),

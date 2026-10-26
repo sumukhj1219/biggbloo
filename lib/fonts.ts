@@ -1,8 +1,8 @@
-import { Figtree, Anton, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Anton, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 
-export const figtree = Figtree({
-  variable: "--font-figtree",
+export const jakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-jakarta-sans",
   subsets: ["latin"],
 });
 

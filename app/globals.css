@@ -23,7 +23,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -93,5 +93,6 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
+    word-spacing: 0.08em;
   }
 }

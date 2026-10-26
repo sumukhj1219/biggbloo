@@ -9,7 +9,7 @@ import ClickSounds from "@/components/common/ClickSounds";
 import JsonLd from "@/components/common/JsonLd";
 import { SITE } from "@/lib/site";
 import "./globals.css";
-import { figtree, anton, jetbrainsMono } from "@/lib/fonts";
+import { jakartaSans, anton, jetbrainsMono } from "@/lib/fonts";
 import "claudesprites/styles.css";
 import "lenis/dist/lenis.css";
 
@@ -70,7 +70,7 @@ const personJsonLd = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${figtree.variable} ${anton.variable} ${jetbrainsMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${jakartaSans.variable} ${anton.variable} ${jetbrainsMono.variable} h-full antialiased`}>
       <body className="min-h-dvh max-w-2xl w-full mx-auto flex flex-col px-4 py-8 sm:px-6 sm:py-16">
         <JsonLd data={personJsonLd} />
         <SmoothScroll>

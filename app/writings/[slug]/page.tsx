@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import Container from "@/components/common/Container";
 import Reveal from "@/components/common/Reveal";
 import JsonLd from "@/components/common/JsonLd";
@@ -7,7 +8,7 @@ import MarkdownActions from "@/layouts/writings/MarkdownActions";
 import SelectionFocus from "@/layouts/writings/SelectionFocus";
 import HighlightRestorer from "@/layouts/writings/HighlightRestorer";
 import { SITE, absoluteUrl } from "@/lib/site";
-import { formatDate, getMarkdown, getSlugs, getWriting } from "@/lib/writings";
+import { formatDate, getMarkdown, getSlugs, getWriting, hasWriting } from "@/lib/writings";
 
 export const dynamicParams = false;
 
@@ -19,6 +20,7 @@ export async function generateMetadata(
   props: PageProps<"/writings/[slug]">,
 ): Promise<Metadata> {
   const { slug } = await props.params;
+  if (!(await hasWriting(slug))) notFound();
   const { writing } = await getWriting(slug);
   const url = `/writings/${slug}`;
   return {
@@ -48,6 +50,7 @@ export default async function WritingPage(
   props: PageProps<"/writings/[slug]">,
 ) {
   const { slug } = await props.params;
+  if (!(await hasWriting(slug))) notFound();
   const [{ writing, Content }, markdown] = await Promise.all([
     getWriting(slug),
     getMarkdown(slug),

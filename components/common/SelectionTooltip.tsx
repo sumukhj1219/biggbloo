@@ -11,6 +11,7 @@ import {
   recolorHighlight,
   removeHighlight,
 } from "@/lib/highlights";
+import DitherBackground from "@/components/ui/DitherBackground";
 
 type Rect = { left: number; top: number; width: number; height: number };
 type Selected = {
@@ -106,6 +107,14 @@ const TrashIcon = () => (
   </svg>
 );
 
+const SWATCH_SHADES: Record<HighlightColor, string[]> = {
+  yellow: ["#fbbf24", "#fcd34d"],
+  green: ["#4ade80", "#86efac"],
+  pink: ["#f472b6", "#f9a8d4"],
+  blue: ["#38bdf8", "#7dd3fc"],
+  violet: ["#a78bfa", "#c4b5fd"],
+};
+
 const Swatches = ({
   current,
   onPick,
@@ -114,7 +123,7 @@ const Swatches = ({
   onPick: (c: HighlightColor) => void;
 }) => (
   <motion.span
-    className="flex items-center gap-x-1 overflow-hidden px-1"
+    className="-my-1 flex items-center gap-x-1 overflow-hidden px-1 py-1"
     initial={{ width: 0, opacity: 0 }}
     animate={{ width: "auto", opacity: 1 }}
     exit={{ width: 0, opacity: 0 }}
@@ -127,10 +136,19 @@ const Swatches = ({
         onClick={() => onPick(name)}
         aria-label={`Highlight ${name}`}
         title={name}
-        className="size-5 shrink-0 cursor-pointer rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition-transform hover:scale-110 data-[current]:ring-2 data-[current]:ring-neutral-300 data-[current]:ring-offset-1"
+        className="relative isolate size-5 shrink-0 cursor-pointer overflow-hidden rounded-full transition-transform hover:scale-110 data-[current]:ring-2 data-[current]:ring-neutral-300 data-[current]:ring-offset-1"
         data-current={current === name || undefined}
-        style={{ backgroundColor: value }}
-      />
+      >
+        <DitherBackground
+          palette={[...SWATCH_SHADES[name], value]}
+          pixel={2}
+          className="absolute inset-0 size-full rounded-full"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+        />
+      </button>
     ))}
   </motion.span>
 );
