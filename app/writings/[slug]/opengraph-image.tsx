@@ -14,5 +14,5 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const { slug } = await params;
   if (!(await hasWriting(slug))) notFound();
   const { writing } = await getWriting(slug);
-  return renderOg({ title: writing.title, subtitle: writing.description });
+  return renderOg({ title: writing.title });
 }
