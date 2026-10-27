@@ -17,6 +17,7 @@
     "@react-three/postprocessing": "^3.2.0",
     "@types/matter-js": "^0.20.2",
     "@types/mdx": "^2.0.14",
+    "@vercel/analytics": "^2.0.1",
     "claudesprites": "^1.0.0",
     "clsx": "^2.1.1",
     "howler": "^2.2.4",

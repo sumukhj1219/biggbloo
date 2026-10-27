@@ -5,6 +5,7 @@ import ScrollFade from "@/components/common/ScrollFade";
 import Footer from "@/components/common/Footer";
 import SmoothScroll from "@/components/common/SmoothScroll";
 import ClickSounds from "@/components/common/ClickSounds";
+import { Analytics } from "@vercel/analytics/next";
 import JsonLd from "@/components/common/JsonLd";
 import { SITE } from "@/lib/site";
 import "./globals.css";
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <ScrollFade />
           <ClickSounds />
         </SmoothScroll>
+        <Analytics />
       </body>
     </html>
   );
