@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { createPortal, useFrame } from "@react-three/fiber";
 import { animate } from "motion/react";
@@ -133,7 +133,7 @@ const WorkBoard = ({ scene, monolith, open, work }: WorkBoardProps) => {
     };
   }, [board]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!rig) return;
     placeBoard(rig, angle.current);
     return () => placeBoard(rig, 0);

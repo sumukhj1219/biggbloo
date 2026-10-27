@@ -4,7 +4,6 @@ import Reveal from "@/components/common/Reveal";
 import ScrollFade from "@/components/common/ScrollFade";
 import Footer from "@/components/common/Footer";
 import SmoothScroll from "@/components/common/SmoothScroll";
-import SelectionTooltip from "@/components/common/SelectionTooltip";
 import ClickSounds from "@/components/common/ClickSounds";
 import JsonLd from "@/components/common/JsonLd";
 import { SITE } from "@/lib/site";
@@ -80,7 +79,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <Footer />
           <ScrollFade />
-          <SelectionTooltip />
           <ClickSounds />
         </SmoothScroll>
       </body>

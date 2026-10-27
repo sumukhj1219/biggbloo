@@ -10,6 +10,7 @@ const items = [
     id: 1,
     title: "Claude Sprites",
     desc: "Interactive claude mascots in browser.",
+    url: "https://claudespritez.fun",
     preview: "/works/spritez/preview.png",
     covers: [
       "/works/spritez/og.png"
@@ -27,8 +28,12 @@ const WorkItems = () => {
         const isBlurred = hoveredId !== null && !isHovered;
 
         return (
-          <motion.div
+          <motion.a
             key={item.id}
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={item.title}
             onMouseEnter={() => setHoveredId(item.id)}
             onMouseLeave={() => setHoveredId(null)}
             animate={{
@@ -36,7 +41,7 @@ const WorkItems = () => {
               opacity: isBlurred ? 0.5 : 1,
             }}
             transition={{ duration: 0.3 }}
-            className="relative aspect-[4/3] isolate inset-shadow-xs overflow-hidden border-2 bg-secondary cursor-pointer"
+            className="relative block aspect-[4/3] isolate inset-shadow-xs overflow-hidden border-2 bg-secondary cursor-pointer"
           >
             <Image
               src={item.covers[0]}
@@ -60,7 +65,7 @@ const WorkItems = () => {
               <span className="text-sm text-white">{item.title}</span>
               <span className="text-xs text-white/70">{item.desc}</span>
             </motion.div>
-          </motion.div>
+          </motion.a>
         );
       })}
     </div>
