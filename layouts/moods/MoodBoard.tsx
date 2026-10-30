@@ -6,7 +6,9 @@ import SectionTitle from "@/components/common/SectionTitle";
 
 const moods = [
   { src: "/moodboard/1.webm", width: 570, height: 520 },
-  { src: "/moodboard/2.webm", width: 1648, height: 767 },
+  { src: "/moodboard/2.webm", width: 408, height: 406 },
+  { src: "/moodboard/3.webm", width: 638, height: 391 },
+  { src: "/moodboard/4.webm", width: 443, height: 475 },
 ];
 
 const MoodVideo = ({ src, width, height }: (typeof moods)[number]) => {
