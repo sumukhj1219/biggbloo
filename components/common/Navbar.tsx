@@ -19,6 +19,7 @@ const RockScene = dynamic(() => import("@/components/three/RockScene"), { ssr: f
 const links = [
   { label: "Home", href: "/", bg: "bg-green-300", fill: "text-green-300" },
   { label: "Blogs", href: "/writings", bg: "bg-pink-300", fill: "text-pink-300" },
+  { label: "Moods", href: "/#moods", bg: "bg-amber-300", fill: "text-amber-300" },
 ];
 
 const Navbar = () => {
@@ -48,7 +49,7 @@ const Navbar = () => {
         <ul className="isolate flex flex-wrap items-center gap-x-5 gap-y-1 text-sm sm:text-lg">
           {links.map(({ label, href, bg, fill }) => {
             const isActive =
-              href === "/" ? pathname === "/" : pathname.startsWith(href);
+              href === "/" ? pathname === "/" : !href.includes("#") && pathname.startsWith(href);
             return (
               <li key={href}>
                 <MotionLink

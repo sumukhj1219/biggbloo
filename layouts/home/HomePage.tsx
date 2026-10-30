@@ -5,6 +5,7 @@ import SelfIntro from "./SelfIntro";
 import CurrentMusic from "./CurrentMusic";
 import Reveal from "@/components/common/Reveal";
 import WorkContent from "../works/WorkContent";
+import MoodBoard from "../moods/MoodBoard";
 import FoosballGame from "@/components/foosball/FoosballGame";
 
 const HomePage = () => {
@@ -20,6 +21,9 @@ const HomePage = () => {
         <WorkContent />
       </Reveal>
       <Reveal index={5}>
+        <MoodBoard />
+      </Reveal>
+      <Reveal index={6}>
         <FoosballGame />
       </Reveal>
     </Container>
