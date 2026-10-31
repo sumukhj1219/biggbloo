@@ -1,12 +1,15 @@
 import { SITE, absoluteUrl } from "@/lib/site";
 import { getMarkdown, getWritings } from "@/lib/writings";
+import { EFFECTS, effectHref, effectName, effectSkillHref } from "@/lib/effects";
+import { getSkill, skillSummary } from "@/lib/effects-source";
 
 const header = () => `# ${SITE.name}
 
 > ${SITE.description}
 
 ${SITE.name} (${SITE.x.handle} on X) is a creative developer based in ${SITE.location}. This site is a
-portfolio with a blog. Every blog post is also available as plain Markdown by adding \`.md\` to its URL.
+portfolio with a blog and a set of React text effects. Every blog post is also available as plain Markdown
+by adding \`.md\` to its URL, and every text effect has an agent skill at \`/moods/<effect>/SKILL.md\`.
 
 ## About
 
@@ -40,6 +43,16 @@ const demoteHeadings = (md: string) => {
     .join("\n");
 };
 
+const effectsList = async () =>
+  (
+    await Promise.all(
+      EFFECTS.map(
+        async ({ slug }) =>
+          `- [${effectName(slug)}](${absoluteUrl(effectHref(slug))}): ${skillSummary(await getSkill(slug))} Skill: ${absoluteUrl(effectSkillHref(slug))}`,
+      ),
+    )
+  ).join("\n");
+
 export const llmsTxt = async () => {
   const writings = await getWritings();
   const posts = writings
@@ -49,6 +62,12 @@ export const llmsTxt = async () => {
 ## Blog posts
 
 ${posts || "- None yet."}
+
+## Text effects
+
+React + Motion text effects, each with a live playground and a SKILL.md an agent can follow to add it to a project.
+
+${await effectsList()}
 
 ${links()}
 ## Optional

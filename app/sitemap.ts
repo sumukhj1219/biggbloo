@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/lib/site";
 import { getWritings } from "@/lib/writings";
+import { EFFECTS, effectHref } from "@/lib/effects";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const writings = await getWritings();
@@ -18,6 +19,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(w.date),
       changeFrequency: "yearly" as const,
       priority: 0.6,
+    })),
+    ...EFFECTS.map(({ slug }) => ({
+      url: absoluteUrl(effectHref(slug)),
+      changeFrequency: "monthly" as const,
+      priority: 0.5,
     })),
   ];
 }

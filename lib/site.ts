@@ -25,6 +25,9 @@ export const SITE = {
     "Next.js",
     "React",
     "Three.js",
+    "Motion",
+    "text effects",
+    "React text animations",
     "India",
   ],
   projects: [

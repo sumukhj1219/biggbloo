@@ -13,7 +13,10 @@ const nextConfig: NextConfig = {
   ],
 
   async rewrites() {
-    return [{ source: "/writings/:slug.md", destination: "/writings/:slug/md" }];
+    return [
+      { source: "/writings/:slug.md", destination: "/writings/:slug/md" },
+      { source: "/moods/:slug/SKILL.md", destination: "/moods/:slug/skill" },
+    ];
   },
 
   async headers() {
