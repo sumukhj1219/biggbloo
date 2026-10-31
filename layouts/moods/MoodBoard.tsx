@@ -9,6 +9,9 @@ const moods = [
   { src: "/moodboard/2.webm", width: 408, height: 406 },
   { src: "/moodboard/3.webm", width: 638, height: 391 },
   { src: "/moodboard/4.webm", width: 443, height: 475 },
+  { src: "/moodboard/5.webm", width: 564, height: 328 },
+  { src: "/moodboard/6.webm", width: 818, height: 454 },
+  { src: "/moodboard/7.webm", width: 354, height: 379 },
 ];
 
 const MoodVideo = ({ src, width, height }: (typeof moods)[number]) => {
@@ -29,7 +32,7 @@ const MoodVideo = ({ src, width, height }: (typeof moods)[number]) => {
   }, []);
 
   return (
-    <div className="relative mb-3 break-inside-avoid overflow-hidden border-2 bg-secondary inset-shadow-xs sm:mb-4">
+    <div className="mb-4 break-inside-avoid sm:mb-6">
       <video
         ref={ref}
         src={src}
@@ -42,10 +45,6 @@ const MoodVideo = ({ src, width, height }: (typeof moods)[number]) => {
         aria-hidden="true"
         className="block h-auto w-full"
       />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 shadow-[inset_0_0_32px_0px_var(--color-background)]"
-      />
     </div>
   );
 };
@@ -53,7 +52,7 @@ const MoodVideo = ({ src, width, height }: (typeof moods)[number]) => {
 const MoodBoard = () => (
   <Container id="moods" className="flex w-full scroll-mt-8 flex-col gap-y-8 sm:gap-y-10">
     <SectionTitle bg="bg-amber-300" fill="text-amber-300">Moods</SectionTitle>
-    <div className="columns-1 gap-3 sm:columns-2 sm:gap-4">
+    <div className="columns-1 gap-4 sm:columns-2 sm:gap-6">
       {moods.map((mood) => (
         <MoodVideo key={mood.src} {...mood} />
       ))}
