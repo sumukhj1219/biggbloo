@@ -8,6 +8,8 @@ export const EFFECTS = [
   { slug: "acid-blur", width: 354, height: 379 },
   { slug: "metallic-glow", width: 428, height: 315 },
   { slug: "paint-drip", width: 343, height: 510 },
+  { slug: "rumble-flash", width: 960, height: 600 },
+  { slug: "stitched-text", width: 604, height: 346 },
 ] as const;
 
 export type EffectSlug = (typeof EFFECTS)[number]["slug"];

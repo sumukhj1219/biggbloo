@@ -17,6 +17,8 @@ const LiquidMorph = dynamic(() => import("@/text-effects/liquid-morph/assets/Liq
 const AcidBlur = dynamic(() => import("@/text-effects/acid-blur/assets/AcidBlur").then((m) => m.AcidBlur));
 const MetallicGlow = dynamic(() => import("@/text-effects/metallic-glow/assets/MetallicGlow").then((m) => m.MetallicGlow));
 const PaintDrip = dynamic(() => import("@/text-effects/paint-drip/assets/PaintDrip").then((m) => m.PaintDrip));
+const RumbleFlash = dynamic(() => import("@/text-effects/rumble-flash/assets/RumbleFlash").then((m) => m.RumbleFlash));
+const StitchedText = dynamic(() => import("@/text-effects/stitched-text/assets/StitchedText").then((m) => m.StitchedText));
 
 type Playground = {
   // `background` and `color` controls style the preview stage itself.
@@ -314,6 +316,75 @@ export const PLAYGROUNDS: Record<EffectSlug, Playground> = {
         duration={n(v, "duration")}
         delay={n(v, "delay")}
         className="text-5xl font-extrabold sm:text-6xl"
+      />
+    ),
+  },
+  "rumble-flash": {
+    controls: [
+      text("text", "Text", "CAN YOU HEAR THE SOUND OF THE NIGHT"),
+      color("color", "Ink", "#ffffff"),
+      color("background", "Background", "#000000"),
+      color("flashColor", "Flash", "#ffffff"),
+      toggle("figures", "Figures", true),
+      toggle("loop", "Loop", true),
+      range("beat", "Beat", 0.32, 0.12, 1, 0.01),
+      range("flash", "Flash chance", 0.8, 0, 1, 0.05),
+      range("flashDuration", "Flash ms", 50, 20, 200, 10),
+      range("rumble", "Rumble", 1, 0, 2, 0.05),
+      range("glitch", "Glitch", 0.6, 0, 1, 0.05),
+      range("chroma", "Chroma", 0.7, 0, 1, 0.05),
+      range("size", "Size", 0.65, 0.3, 1, 0.05),
+      range("fps", "FPS", 24, 8, 60, 1),
+    ],
+    // A 16:10 screen that fills the stage width; it paints its own background.
+    render: (v) => (
+      <RumbleFlash
+        text={s(v, "text")}
+        color={s(v, "color")}
+        background={s(v, "background")}
+        flashColor={s(v, "flashColor")}
+        figures={b(v, "figures")}
+        loop={b(v, "loop")}
+        beat={n(v, "beat")}
+        flash={n(v, "flash")}
+        flashDuration={n(v, "flashDuration")}
+        rumble={n(v, "rumble")}
+        glitch={n(v, "glitch")}
+        chroma={n(v, "chroma")}
+        size={n(v, "size")}
+        fps={n(v, "fps")}
+        className="w-full"
+      />
+    ),
+  },
+  "stitched-text": {
+    controls: [
+      text("text", "Text", "Barcelona"),
+      color("thread1", "Thread 1", "#004d98"),
+      color("thread2", "Thread 2", "#a50044"),
+      color("borderColor", "Border", "#f2c12e"),
+      color("background", "Background", "#ffffff"),
+      toggle("needle", "Needle", true),
+      toggle("shadow", "Shadow", true),
+      range("border", "Border width", 0.07, 0, 0.2, 0.005),
+      range("thread", "Thread", 0.013, 0.005, 0.04, 0.001),
+      range("slant", "Slant", 28, -80, 80, 1),
+      range("duration", "Duration", 3.2, 0, 10, 0.1),
+      range("delay", "Delay", 0.2, 0, 2, 0.1),
+    ],
+    render: (v) => (
+      <StitchedText
+        text={s(v, "text")}
+        colors={[s(v, "thread1"), s(v, "thread2")]}
+        borderColor={s(v, "borderColor")}
+        needle={b(v, "needle")}
+        shadow={b(v, "shadow")}
+        border={n(v, "border")}
+        thread={n(v, "thread")}
+        slant={n(v, "slant")}
+        duration={n(v, "duration")}
+        delay={n(v, "delay")}
+        className="text-6xl font-black sm:text-8xl"
       />
     ),
   },
