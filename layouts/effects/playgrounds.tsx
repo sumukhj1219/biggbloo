@@ -15,6 +15,8 @@ const SizeCascade = dynamic(() => import("@/text-effects/size-cascade/assets/Siz
 const RetroText = dynamic(() => import("@/text-effects/retro-text/assets/RetroText").then((m) => m.RetroText));
 const LiquidMorph = dynamic(() => import("@/text-effects/liquid-morph/assets/LiquidMorph").then((m) => m.LiquidMorph));
 const AcidBlur = dynamic(() => import("@/text-effects/acid-blur/assets/AcidBlur").then((m) => m.AcidBlur));
+const MetallicGlow = dynamic(() => import("@/text-effects/metallic-glow/assets/MetallicGlow").then((m) => m.MetallicGlow));
+const PaintDrip = dynamic(() => import("@/text-effects/paint-drip/assets/PaintDrip").then((m) => m.PaintDrip));
 
 type Playground = {
   // `background` and `color` controls style the preview stage itself.
@@ -33,6 +35,18 @@ const select = (key: string, label: string, options: readonly string[], value: s
   type: "select", key, label, options, value,
 });
 const toggle = (key: string, label: string, value: boolean): Control => ({ type: "toggle", key, label, value });
+
+// Gradient ramps are arrays, so the playground offers presets instead of one picker per stop.
+const GLOW_RAMPS: Record<string, string[]> = {
+  molten: ["#1a0300", "#6e1200", "#c42d00", "#ff5a00", "#ff8a1f", "#ffc27a", "#fff1dc", "#ffffff"],
+  ice: ["#000814", "#002a5c", "#0057b8", "#1e90ff", "#5cc8ff", "#bfeaff", "#ffffff"],
+  toxic: ["#020a00", "#0d3b00", "#2e8a00", "#5cff1a", "#b0ff7a", "#eaffd6", "#ffffff"],
+};
+const DRIP_RAMPS: Record<string, string[]> = {
+  ink: ["#2a2a2a", "#4a4a4a", "#6a6a6a", "#7a7a7a", "#5c5c5c", "#3a3a3a", "#202020", "#101010"],
+  sunset: ["#fff3a0", "#ffcc1a", "#ff8c00", "#ff4500", "#e0112b", "#8a1a7a", "#3a1f8a", "#1a1660"],
+  candy: ["#ffd1f0", "#ff9ad8", "#ff6ec7", "#b14dff", "#4dd2ff", "#2a6bff"],
+};
 
 const n = (v: Values, key: string) => v[key] as number;
 const s = (v: Values, key: string) => v[key] as string;
@@ -239,6 +253,67 @@ export const PLAYGROUNDS: Record<EffectSlug, Playground> = {
         glow={n(v, "glow")}
         grain={n(v, "grain")}
         className={`text-8xl sm:text-9xl ${ANTON}`}
+      />
+    ),
+  },
+  "metallic-glow": {
+    controls: [
+      text("text", "Text", "@$$"),
+      select("palette", "Palette", Object.keys(GLOW_RAMPS), "molten"),
+      color("glass", "Glass", "#3a404a"),
+      color("background", "Background", "#1b1b1d"),
+      toggle("live", "Live", true),
+      range("speed", "Speed", 1, 0, 4, 0.1),
+      range("glow", "Glow", 0.01, 0, 0.4, 0.01),
+      range("intensity", "Intensity", 1, 0.2, 2.5, 0.05),
+      range("corners", "Corners", 0.1, 0, 2, 0.05),
+      range("duration", "Duration", 1.6, 0.2, 5, 0.1),
+      range("delay", "Delay", 0.2, 0, 2, 0.1),
+    ],
+    render: (v) => (
+      <MetallicGlow
+        text={s(v, "text")}
+        colors={GLOW_RAMPS[s(v, "palette")]}
+        glass={s(v, "glass")}
+        live={b(v, "live")}
+        speed={n(v, "speed")}
+        glow={n(v, "glow")}
+        intensity={n(v, "intensity")}
+        corners={n(v, "corners")}
+        duration={n(v, "duration")}
+        delay={n(v, "delay")}
+        className="text-8xl font-black sm:text-9xl"
+      />
+    ),
+  },
+  "paint-drip": {
+    controls: [
+      text("text", "Text", "drip"),
+      select("palette", "Palette", Object.keys(DRIP_RAMPS), "ink"),
+      color("color", "Letters", "#111111"),
+      color("background", "Background", "#ffffff"),
+      toggle("live", "Live", true),
+      range("length", "Length", 4.6, 0.5, 5, 0.1),
+      range("turbulence", "Turbulence", 1, 0, 2, 0.05),
+      range("melt", "Melt", 0.85, 0, 2, 0.05),
+      range("speed", "Speed", 1, 0, 3, 0.1),
+      range("duration", "Duration", 10, 1, 20, 0.5),
+      range("delay", "Delay", 1, 0, 3, 0.1),
+    ],
+    // The drips hang below the text box, so the stage gives them a smaller font.
+    render: (v) => (
+      <PaintDrip
+        text={s(v, "text")}
+        colors={DRIP_RAMPS[s(v, "palette")]}
+        color={s(v, "color")}
+        live={b(v, "live")}
+        length={n(v, "length")}
+        turbulence={n(v, "turbulence")}
+        melt={n(v, "melt")}
+        speed={n(v, "speed")}
+        duration={n(v, "duration")}
+        delay={n(v, "delay")}
+        className="text-5xl font-extrabold sm:text-6xl"
       />
     ),
   },
