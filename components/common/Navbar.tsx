@@ -17,9 +17,9 @@ const MotionLink = motion.create(Link);
 const RockScene = dynamic(() => import("@/components/three/RockScene"), { ssr: false });
 
 const links = [
-  { label: "Home", href: "/", bg: "bg-green-300", fill: "text-green-300" },
-  { label: "Blogs", href: "/writings", bg: "bg-pink-300", fill: "text-pink-300" },
-  { label: "Moods", href: "/#moods", bg: "bg-amber-300", fill: "text-amber-300" },
+  { label: "Home", href: "/", bg: "bg-green-400", fill: "text-green-400" },
+  { label: "Blogs", href: "/writings", bg: "bg-pink-400", fill: "text-pink-400" },
+  { label: "Moods", href: "/#moods", bg: "bg-amber-400", fill: "text-amber-400" },
 ];
 
 const Navbar = () => {
@@ -66,7 +66,7 @@ const Navbar = () => {
                   <span
                     aria-hidden="true"
                     className={cn(
-                      "absolute inset-0 -z-10 shadow-[inset_0_0_12px_0px_var(--color-background)]",
+                      "absolute inset-0 -z-10 shadow-[inset_0_0_6px_0px_var(--color-background)]",
                       bg,
                     )}
                   />
@@ -88,10 +88,10 @@ const Navbar = () => {
         >
           <span
             aria-hidden="true"
-            className="absolute inset-0 -z-10 bg-orange-300 shadow-[inset_0_0_12px_0px_var(--color-background)]"
+            className="absolute inset-0 -z-10 bg-orange-400 shadow-[inset_0_0_6px_0px_var(--color-background)]"
           />
           <span className="px-2 py-1">Magic</span>
-          <HoverChecker fill="text-orange-300" className="w-[1.3125rem] sm:w-[1.6875rem]" />
+          <HoverChecker fill="text-orange-400" className="w-[1.3125rem] sm:w-[1.6875rem]" />
         </motion.button>
       </div>
       {typeof document !== "undefined" &&

@@ -70,7 +70,7 @@ const personJsonLd = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${jakartaSans.variable} ${anton.variable} ${jetbrainsMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${jakartaSans.variable} ${anton.variable} ${jetbrainsMono.variable} h-full overflow-x-clip antialiased`}>
       <body className="min-h-dvh max-w-2xl w-full mx-auto flex flex-col px-4 py-8 sm:px-6 sm:py-16">
         <JsonLd data={personJsonLd} />
         <SmoothScroll>
