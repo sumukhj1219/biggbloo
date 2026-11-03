@@ -3,7 +3,6 @@ import Navbar from "@/components/common/Navbar";
 import RevealOffset from "@/components/common/RevealOffset";
 import Reveal from "@/components/common/Reveal";
 import ScrollFade from "@/components/common/ScrollFade";
-import Footer from "@/components/common/Footer";
 import SmoothScroll from "@/components/common/SmoothScroll";
 import { Analytics } from "@vercel/analytics/next";
 import JsonLd from "@/components/common/JsonLd";
@@ -79,10 +78,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Navbar />
           </Reveal>
           {children}
-          {/* mt-auto sits on the wrapper: it has to be the body's flex child to pin the footer down. */}
-          <Reveal index={7} className="mt-auto">
-            <Footer />
-          </Reveal>
           </RevealOffset>
           <ScrollFade />
         </SmoothScroll>

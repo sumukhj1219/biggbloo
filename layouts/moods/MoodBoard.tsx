@@ -4,12 +4,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, useMotionValueEvent, useScroll, useTransform } from "motion/react";
 import { useLenis } from "lenis/react";
-import SectionTitle from "@/components/common/SectionTitle";
 import { EFFECTS, effectHref, effectName, effectVideo } from "@/lib/effects";
 
-// Moods is a horizontal track pinned to the screen: scrolling down through the
-// section slides it sideways (one pixel of scroll moves it one pixel), and the
-// arrow buttons step through it by scrolling the page for you.
+// Moods is a horizontal track that pins in the middle of the screen: scrolling
+// down through the section slides it sideways (one pixel of scroll moves it one
+// pixel), and the arrow buttons step through it by scrolling the page for you.
+// The section is only as tall as the track plus that sideways distance, so it
+// adds no empty space above or below.
 
 const MoodVideo = ({ slug, width, height }: (typeof EFFECTS)[number]) => {
   const ref = useRef<HTMLVideoElement>(null);
@@ -64,61 +65,73 @@ const GUTTER = "px-4 sm:px-[max(1.5rem,calc((100vw-42rem)/2+1.5rem))]";
 
 const MoodBoard = () => {
   const sectionRef = useRef<HTMLElement>(null);
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const pinRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const [distance, setDistance] = useState(0);
+  // start: page scroll where pinning begins; top: sticky offset that centres the track.
+  const [geo, setGeo] = useState({ start: 0, distance: 0, height: 0, top: 0 });
   const [edge, setEdge] = useState<"start" | "middle" | "end">("start");
   const lenis = useLenis();
+  const { scrollY } = useScroll();
 
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end end"] });
-  const x = useTransform(scrollYProgress, (p) => -p * distance);
+  const offset = (y: number) => Math.min(Math.max(y - geo.start, 0), geo.distance);
+  const x = useTransform(scrollY, (y) => -offset(y));
 
-  useMotionValueEvent(scrollYProgress, "change", (p) => setEdge(p <= 0.001 ? "start" : p >= 0.999 ? "end" : "middle"));
+  useMotionValueEvent(scrollY, "change", (y) => {
+    const o = offset(y);
+    setEdge(o <= 1 ? "start" : o >= geo.distance - 1 ? "end" : "middle");
+  });
 
-  // How far the track overflows the screen: that's how much extra scroll the section needs.
   useLayoutEffect(() => {
+    const section = sectionRef.current;
+    const pin = pinRef.current;
     const track = trackRef.current;
-    const viewport = viewportRef.current;
-    if (!track || !viewport) return;
-    const measure = () => setDistance(Math.max(track.scrollWidth - viewport.clientWidth, 0));
+    if (!section || !pin || !track) return;
+    const measure = () => {
+      const height = pin.offsetHeight;
+      const top = Math.max((window.innerHeight - height) / 2, 0);
+      setGeo({
+        start: section.getBoundingClientRect().top + window.scrollY - top,
+        distance: Math.max(track.scrollWidth - pin.clientWidth, 0),
+        height,
+        top,
+      });
+    };
+    // The body is observed too: anything above changing height moves the start.
     const observer = new ResizeObserver(measure);
-    observer.observe(track);
-    observer.observe(viewport);
+    [track, pin, document.body].forEach((el) => observer.observe(el));
+    window.addEventListener("resize", measure);
     measure();
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
   }, []);
 
   const step = (dir: 1 | -1) => {
-    const section = sectionRef.current;
-    const viewport = viewportRef.current;
-    if (!section || !viewport) return;
-    const top = section.getBoundingClientRect().top + window.scrollY;
-    const offset = Math.min(Math.max(window.scrollY - top + dir * viewport.clientWidth * 0.6, 0), distance);
-    if (lenis) lenis.scrollTo(top + offset, { duration: 0.9 });
-    else window.scrollTo({ top: top + offset, behavior: "smooth" });
+    const pin = pinRef.current;
+    if (!pin) return;
+    const target = geo.start + offset(window.scrollY + dir * pin.clientWidth * 0.6);
+    if (lenis) lenis.scrollTo(target, { duration: 0.9 });
+    else window.scrollTo({ top: target, behavior: "smooth" });
   };
 
   return (
     <section
       ref={sectionRef}
       id="moods"
-      aria-labelledby="moods-title"
+      aria-label="Moods"
       className="relative left-1/2 w-screen -translate-x-1/2"
-      style={{ height: `calc(100svh + ${distance}px)` }}
+      // Lands /#moods with the track already centred.
+      style={{ height: geo.height + geo.distance || undefined, scrollMarginTop: geo.top }}
     >
-      <div ref={viewportRef} className="sticky top-0 flex h-svh flex-col justify-center gap-y-4 overflow-hidden sm:gap-y-6">
-        <div className={`flex items-center justify-between ${GUTTER}`}>
-          <SectionTitle>
-            <span id="moods-title">Moods</span>
-          </SectionTitle>
-          <div className="flex gap-x-2">
-            <button type="button" onClick={() => step(-1)} disabled={edge === "start"} aria-label="Previous moods" className={arrowButton}>
-              <Arrow flip />
-            </button>
-            <button type="button" onClick={() => step(1)} disabled={edge === "end"} aria-label="Next moods" className={arrowButton}>
-              <Arrow />
-            </button>
-          </div>
+      <div ref={pinRef} className="sticky flex flex-col gap-y-3 overflow-hidden sm:gap-y-4" style={{ top: geo.top }}>
+        <div className={`flex justify-end gap-x-2 ${GUTTER}`}>
+          <button type="button" onClick={() => step(-1)} disabled={edge === "start"} aria-label="Previous moods" className={arrowButton}>
+            <Arrow flip />
+          </button>
+          <button type="button" onClick={() => step(1)} disabled={edge === "end"} aria-label="Next moods" className={arrowButton}>
+            <Arrow />
+          </button>
         </div>
         <motion.div ref={trackRef} style={{ x }} className={`flex w-max items-end gap-x-4 sm:gap-x-6 ${GUTTER}`}>
           {EFFECTS.map((effect) => (
