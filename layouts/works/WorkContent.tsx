@@ -5,8 +5,8 @@ import SectionTitle from '@/components/common/SectionTitle'
 
 const WorkContent = forwardRef<HTMLDivElement>((_props, ref) => {
   return (
-    <Container className='w-full flex flex-col justify-center gap-y-8 sm:gap-y-10' ref={ref}>
-      <SectionTitle bg='bg-sky-300' fill='text-sky-300'>Works</SectionTitle>
+    <Container className='w-full flex flex-col justify-center gap-y-4 sm:gap-y-6' ref={ref}>
+      <SectionTitle>Works</SectionTitle>
       <WorkItems />
     </Container>
   )

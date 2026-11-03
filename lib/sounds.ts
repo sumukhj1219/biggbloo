@@ -5,7 +5,6 @@ type SoundConfig = { src: string; volume: number; loop?: boolean; html5?: boolea
 const SOUNDS = {
   gear: { src: "/sounds/gear.wav", volume: 0.6 },
   crank: { src: "/sounds/crank.wav", volume: 0.6 },
-  click: { src: "/sounds/click-button.mp3", volume: 0.5 },
   cozyBg: { src: "/sounds/cozy-bg.mp3", volume: 0.12, loop: true, html5: true },
 } satisfies Record<string, SoundConfig>;
 
@@ -52,30 +51,4 @@ export const isMuted = () => muted;
 export const setMuted = (value: boolean) => {
   muted = value;
   Howler.mute(value);
-};
-
-let toneCtx: AudioContext | null = null;
-
-type Note = { freq: number; dur: number };
-
-const playTones = (notes: Note[], type: OscillatorType, volume = 0.05, tail = 0.3) => {
-  if (muted) return;
-  toneCtx ??= new AudioContext();
-  const ctx = toneCtx;
-  if (ctx.state === "suspended") ctx.resume().catch(() => undefined);
-  const t = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = type;
-  let at = t;
-  for (const { freq, dur } of notes) {
-    osc.frequency.setValueAtTime(freq, at);
-    at += dur;
-  }
-  gain.gain.setValueAtTime(volume, t);
-  gain.gain.setValueAtTime(volume, at);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + tail);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start(t);
-  osc.stop(at + tail);
 };

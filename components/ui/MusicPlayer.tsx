@@ -147,7 +147,7 @@ const MusicPlayer = forwardRef<HTMLDivElement>((_props, ref) => {
   return (
     <div ref={ref} className="flex gap-x-3 items-center">
       <Disc key={`${track?.title}|${track?.artist}`} track={track} />
-      <div className="flex min-w-0 flex-col text-muted-foreground/60 text-sm ">
+      <div className="flex min-w-0 flex-col text-sm text-muted-foreground/60 sm:text-base">
         <span>{track?.isPlaying ? "Now Playing" : "Last Played"}</span>
         {track ? (
           <span className="break-words">

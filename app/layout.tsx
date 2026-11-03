@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/common/Navbar";
+import RevealOffset from "@/components/common/RevealOffset";
 import Reveal from "@/components/common/Reveal";
 import ScrollFade from "@/components/common/ScrollFade";
 import Footer from "@/components/common/Footer";
 import SmoothScroll from "@/components/common/SmoothScroll";
-import ClickSounds from "@/components/common/ClickSounds";
 import { Analytics } from "@vercel/analytics/next";
 import JsonLd from "@/components/common/JsonLd";
 import { SITE } from "@/lib/site";
@@ -74,15 +74,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-dvh max-w-2xl w-full mx-auto flex flex-col px-4 py-8 sm:px-6 sm:py-16">
         <JsonLd data={personJsonLd} />
         <SmoothScroll>
+          <RevealOffset>
           <Reveal>
             <Navbar />
           </Reveal>
           {children}
-          <Reveal index={7}>
+          {/* mt-auto sits on the wrapper: it has to be the body's flex child to pin the footer down. */}
+          <Reveal index={7} className="mt-auto">
             <Footer />
           </Reveal>
+          </RevealOffset>
           <ScrollFade />
-          <ClickSounds />
         </SmoothScroll>
         <Analytics />
       </body>

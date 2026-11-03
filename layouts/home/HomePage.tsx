@@ -7,17 +7,13 @@ import Reveal from "@/components/common/Reveal";
 import WorkContent from "../works/WorkContent";
 import MoodBoard from "../moods/MoodBoard";
 import FoosballGame from "@/components/foosball/FoosballGame";
-import SpeedLines from "@/components/ui/SpeedLines";
 
 const HomePage = () => {
   return (
-    <Container className="flex flex-col gap-y-8 sm:gap-y-10">
-      {/* Outside Reveal: a transformed ancestor would break its fixed positioning. */}
-      <SpeedLines />
-      <Reveal index={1}>
-        <SelfIntro />
-      </Reveal>
-      <Reveal index={2}>
+    <Container className="flex flex-col gap-y-10 sm:gap-y-14">
+      {/* SelfIntro runs its own reveals: the avatar goes first. */}
+      <SelfIntro />
+      <Reveal index={3}>
         <CurrentMusic />
       </Reveal>
       <Reveal index={4}>

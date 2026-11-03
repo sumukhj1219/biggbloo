@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { amatic } from "@/lib/fonts";
 import { isMuted, setMuted } from "@/lib/sounds";
-import HoverChecker from "@/components/ui/HoverChecker";
+import SelectFrame from "@/components/ui/SelectFrame";
 import DitherBackground from "@/components/ui/DitherBackground";
 
 const MotionLink = motion.create(Link);
@@ -17,9 +17,9 @@ const MotionLink = motion.create(Link);
 const RockScene = dynamic(() => import("@/components/three/RockScene"), { ssr: false });
 
 const links = [
-  { label: "Home", href: "/", bg: "bg-green-400", fill: "text-green-400" },
-  { label: "Blogs", href: "/writings", bg: "bg-pink-400", fill: "text-pink-400" },
-  { label: "Moods", href: "/#moods", bg: "bg-amber-400", fill: "text-amber-400" },
+  { label: "Home", href: "/" },
+  { label: "Blogs", href: "/writings" },
+  { label: "Moods", href: "/#moods" },
 ];
 
 const Navbar = () => {
@@ -46,8 +46,8 @@ const Navbar = () => {
   return (
     <nav aria-label="Main" className="mb-24 sm:mb-30">
       <div className="flex items-center justify-between">
-        <ul className="isolate flex flex-wrap items-center gap-x-5 gap-y-1 text-sm sm:text-lg">
-          {links.map(({ label, href, bg, fill }) => {
+        <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:text-base">
+          {links.map(({ label, href }) => {
             const isActive =
               href === "/" ? pathname === "/" : !href.includes("#") && pathname.startsWith(href);
             return (
@@ -55,23 +55,17 @@ const Navbar = () => {
                 <MotionLink
                   href={href}
                   aria-current={isActive ? "page" : undefined}
+                  // The current page keeps its frame, like a selected layer.
                   initial="rest"
-                  animate="rest"
+                  animate={isActive ? "hover" : "rest"}
                   whileHover="hover"
                   className={cn(
-                    "press relative flex items-stretch hover:text-foreground",
+                    "press relative block px-2 py-1 hover:text-foreground",
                     isActive ? "text-foreground" : "text-muted-foreground/60",
                   )}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "absolute inset-0 -z-10 shadow-[inset_0_0_6px_0px_var(--color-background)]",
-                      bg,
-                    )}
-                  />
-                  <HoverChecker fill={fill} className="w-[1.3125rem] sm:w-[1.6875rem]" />
-                  <span className="px-2 py-1">{label}</span>
+                  <SelectFrame />
+                  {label}
                 </MotionLink>
               </li>
             );
@@ -84,14 +78,10 @@ const Navbar = () => {
           initial="rest"
           animate="rest"
           whileHover="hover"
-          className="press relative isolate flex cursor-pointer items-stretch text-sm text-muted-foreground/60 hover:text-foreground sm:text-lg"
+          className="press relative block cursor-pointer px-2 py-1 text-sm text-muted-foreground/60 hover:text-foreground sm:text-base"
         >
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 -z-10 bg-orange-400 shadow-[inset_0_0_6px_0px_var(--color-background)]"
-          />
-          <span className="px-2 py-1">Magic</span>
-          <HoverChecker fill="text-orange-400" className="w-[1.3125rem] sm:w-[1.6875rem]" />
+          <SelectFrame />
+          Magic
         </motion.button>
       </div>
       {typeof document !== "undefined" &&

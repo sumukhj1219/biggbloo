@@ -56,7 +56,7 @@ const WritingsList = ({
                   {readingMinutes} min read
                 </span>
               </span>
-              <span className="text-sm text-muted-foreground/60">{description}</span>
+              <span className="text-sm text-muted-foreground/60 sm:text-base">{description}</span>
             </MotionLink>
           </motion.li>
         );

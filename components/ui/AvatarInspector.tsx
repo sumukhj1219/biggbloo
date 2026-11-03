@@ -18,14 +18,18 @@ const fmt = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
 type Props = {
   children: ReactNode;
   initialRadius?: number;
+  /** Seconds before the guides and measurements draw in. */
+  introDelay?: number;
   className?: string;
 };
 
-const AvatarInspector = ({ children, initialRadius = 4, className }: Props) => {
+const AvatarInspector = ({ children, initialRadius = 4, introDelay = 0, className }: Props) => {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [radius, setRadius] = useState(initialRadius);
   const [dragging, setDragging] = useState(false);
+  // The handle's intro waits for introDelay; later scale changes (drag, hover) must not.
+  const [settled, setSettled] = useState(false);
   const max = Math.min(size.w, size.h) / 2;
   const r = Math.min(radius, max || radius);
   const pct = size.w ? (r / size.w) * 100 : 0;
@@ -77,32 +81,32 @@ const AvatarInspector = ({ children, initialRadius = 4, className }: Props) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: EASE }}
+            transition={{ duration: 0.2, ease: EASE, delay: introDelay }}
             className="absolute inset-0 z-10"
           >
             {/* Guide lines running past each edge. */}
             <motion.span
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
-              transition={{ duration: 0.35, ease: EASE }}
+              transition={{ duration: 0.35, ease: EASE, delay: introDelay }}
               className={cn(GUIDE, "-inset-x-3 top-0 h-px")}
             />
             <motion.span
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
-              transition={{ duration: 0.35, ease: EASE, delay: 0.04 }}
+              transition={{ duration: 0.35, ease: EASE, delay: introDelay + 0.04 }}
               className={cn(GUIDE, "-inset-x-3 bottom-0 h-px")}
             />
             <motion.span
               initial={{ scaleY: 0 }}
               animate={{ scaleY: 1 }}
-              transition={{ duration: 0.35, ease: EASE, delay: 0.02 }}
+              transition={{ duration: 0.35, ease: EASE, delay: introDelay + 0.02 }}
               className={cn(GUIDE, "-inset-y-3 left-0 w-px")}
             />
             <motion.span
               initial={{ scaleY: 0 }}
               animate={{ scaleY: 1 }}
-              transition={{ duration: 0.35, ease: EASE, delay: 0.06 }}
+              transition={{ duration: 0.35, ease: EASE, delay: introDelay + 0.06 }}
               className={cn(GUIDE, "-inset-y-3 right-0 w-px")}
             />
             <span className="pointer-events-none absolute inset-0 outline outline-sky-500/70" style={{ borderRadius: r }} />
@@ -111,7 +115,7 @@ const AvatarInspector = ({ children, initialRadius = 4, className }: Props) => {
             <motion.div
               initial={{ opacity: 0, y: -3 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: EASE, delay: 0.08 }}
+              transition={{ duration: 0.3, ease: EASE, delay: introDelay + 0.08 }}
               className="pointer-events-none absolute inset-x-0 top-full mt-2 flex items-center"
             >
               <span className="h-2 w-px bg-neutral-400" />
@@ -124,7 +128,7 @@ const AvatarInspector = ({ children, initialRadius = 4, className }: Props) => {
             <motion.div
               initial={{ opacity: 0, x: 3 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, ease: EASE, delay: 0.1 }}
+              transition={{ duration: 0.3, ease: EASE, delay: introDelay + 0.1 }}
               className="pointer-events-none absolute inset-y-0 right-full mr-2 flex flex-col items-center"
             >
               <span className="h-px w-2 bg-neutral-400" />
@@ -141,7 +145,7 @@ const AvatarInspector = ({ children, initialRadius = 4, className }: Props) => {
             <motion.span
               initial={{ opacity: 0, y: 3 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: EASE, delay: 0.12 }}
+              transition={{ duration: 0.3, ease: EASE, delay: introDelay + 0.12 }}
               className={cn(LABEL, "bottom-full left-0 mb-2.5 -translate-x-1/2", dragging && "text-sky-600")}
             >
               {pct.toFixed(2)}%
@@ -157,7 +161,8 @@ const AvatarInspector = ({ children, initialRadius = 4, className }: Props) => {
               initial={{ scale: 0 }}
               animate={{ scale: dragging ? 1.35 : 1 }}
               whileHover={{ scale: 1.25 }}
-              transition={{ type: "spring", stiffness: 500, damping: 28 }}
+              transition={{ type: "spring", stiffness: 500, damping: 28, delay: settled ? 0 : introDelay + 0.14 }}
+              onAnimationComplete={() => setSettled(true)}
               onDoubleClick={() => setRadius(initialRadius)}
               onPointerDown={(e) => {
                 e.preventDefault();
