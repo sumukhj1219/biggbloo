@@ -17,7 +17,7 @@ const ReplayIcon = () => (
 );
 
 const stageButton =
-  "flex h-7 cursor-pointer items-center gap-x-1.5 rounded-full bg-background/80 px-2.5 text-[11px] text-neutral-600 shadow-[0_1px_3px_rgba(0,0,0,0.12)] backdrop-blur-sm transition-colors hover:bg-background hover:text-foreground";
+  "flex h-7 cursor-pointer items-center gap-x-1.5 rounded-full bg-background/80 px-2.5 text-[11px] text-neutral-600 shadow-[0_1px_3px_rgba(0,0,0,0.12)] backdrop-blur-sm press hover:bg-background hover:text-foreground";
 
 const EffectPlayground = ({ slug }: { slug: EffectSlug }) => {
   const { controls, render } = PLAYGROUNDS[slug];

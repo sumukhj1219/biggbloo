@@ -79,6 +79,3 @@ const playTones = (notes: Note[], type: OscillatorType, volume = 0.05, tail = 0.
   osc.start(t);
   osc.stop(at + tail);
 };
-
-export const playCoin = () =>
-  playTones([{ freq: 988, dur: 0.07 }, { freq: 1319, dur: 0 }], "square", 0.05, 0.33);

@@ -29,7 +29,7 @@ const MoodVideo = ({ slug, width, height }: (typeof EFFECTS)[number]) => {
     <Link
       href={effectHref(slug)}
       style={{ "--ar": width / height } as CSSProperties}
-      className="group flex flex-col gap-y-2 md:[flex:var(--ar)_1_0%]"
+      className="press group flex flex-col gap-y-2 [--press:0.985] md:[flex:var(--ar)_1_0%]"
     >
       <span className="text-sm text-muted-foreground transition-colors group-hover:text-foreground">
         {effectName(slug)}

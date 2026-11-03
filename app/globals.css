@@ -22,6 +22,21 @@
   --ring: oklch(0.708 0 0);
 }
 
+/* Emil Kowalski-style press feedback for buttons and links: a quick ease-out
+   scale on :active, so a tap feels acknowledged immediately. Large surfaces
+   set --press closer to 1. Uses transform so it composes with Tailwind's
+   translate/scale properties. */
+@utility press {
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  &:active {
+    transform: scale(var(--press, 0.97));
+  }
+}
+
 @theme inline {
   --font-sans: var(--font-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;

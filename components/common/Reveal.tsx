@@ -19,8 +19,10 @@ const Reveal = forwardRef<HTMLDivElement, RevealProps>(
       <motion.div
         ref={ref}
         className={className}
-        initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
+        // Starts blurred and comes into focus. The filter is cleared afterwards:
+        // a leftover blur(0px) would still trap fixed children and z-index.
+        initial={reduceMotion ? false : { opacity: 0, y: 18, filter: "blur(8px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
         transition={{
           duration: 0.7,
           ease: [0.22, 1, 0.36, 1],

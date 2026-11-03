@@ -32,7 +32,7 @@ const Footer = () => (
               initial="rest"
               animate="rest"
               whileHover="hover"
-              className="relative flex items-stretch transition-colors hover:text-foreground"
+              className="press relative flex items-stretch hover:text-foreground"
             >
               <span
                 aria-hidden="true"

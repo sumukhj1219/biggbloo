@@ -266,7 +266,7 @@ const PixelXCard = ({
       onPointerEnter={show}
       onPointerLeave={hide}
     >
-      <Link href={href} className="italic underline hover:text-primary">
+      <Link href={href} className="press inline-block italic underline hover:text-primary">
         {children}
       </Link>
 

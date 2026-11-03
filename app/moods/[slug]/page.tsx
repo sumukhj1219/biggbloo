@@ -68,7 +68,7 @@ export default async function EffectPage(props: PageProps<"/moods/[slug]">) {
     <Container className="flex flex-col">
       <JsonLd data={jsonLd} />
       <Reveal index={1}>
-        <Link href="/#moods" className="text-sm text-muted-foreground/60 transition-colors hover:text-foreground">
+        <Link href="/#moods" className="press inline-block text-sm text-muted-foreground/60 hover:text-foreground">
           ← All moods
         </Link>
       </Reveal>

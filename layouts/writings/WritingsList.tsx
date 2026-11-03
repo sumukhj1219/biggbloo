@@ -47,7 +47,7 @@ const WritingsList = ({
               animate="rest"
               whileHover="hover"
               whileFocus="hover"
-              className="flex flex-col gap-y-1.5 py-4"
+              className="press flex flex-col gap-y-1.5 py-4 [--press:0.99]"
             >
               <span className="flex items-center text-base text-foreground sm:text-lg">
                 <HoverChecker fill="text-pink-300" className="mr-2 h-[1em] w-[0.75em]" />

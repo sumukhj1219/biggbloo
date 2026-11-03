@@ -136,7 +136,7 @@ const Swatches = ({
         onClick={() => onPick(name)}
         aria-label={`Highlight ${name}`}
         title={name}
-        className="relative isolate size-5 shrink-0 cursor-pointer overflow-hidden rounded-full transition-transform hover:scale-110 data-[current]:ring-2 data-[current]:ring-neutral-300 data-[current]:ring-offset-1"
+        className="relative isolate size-5 shrink-0 cursor-pointer overflow-hidden rounded-full transition-[scale] duration-150 ease-out hover:scale-110 active:scale-95 data-[current]:ring-2 data-[current]:ring-neutral-300 data-[current]:ring-offset-1"
         data-current={current === name || undefined}
       >
         <DitherBackground
@@ -263,7 +263,7 @@ const SelectionTooltip = () => {
   const barClass =
     "fixed z-45 flex -translate-x-1/2 -translate-y-[calc(100%+10px)] items-center gap-x-0.5 rounded-full bg-background p-1 text-xs text-muted-foreground shadow-[0_2px_12px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.03)]";
   const iconButton =
-    "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-secondary hover:text-foreground data-[active]:bg-secondary data-[active]:text-foreground";
+    "flex size-7 shrink-0 cursor-pointer items-center justify-center press rounded-full hover:bg-secondary hover:text-foreground data-[active]:bg-secondary data-[active]:text-foreground";
 
   return (
     <>
@@ -307,7 +307,7 @@ const SelectionTooltip = () => {
             <button
               type="button"
               onClick={copy}
-              className="h-7 cursor-pointer overflow-hidden rounded-full px-3 transition-colors hover:bg-secondary hover:text-foreground"
+              className="press h-7 cursor-pointer overflow-hidden rounded-full px-3 hover:bg-secondary hover:text-foreground"
             >
               <AnimatePresence mode="wait" initial={false}>
                 <motion.span

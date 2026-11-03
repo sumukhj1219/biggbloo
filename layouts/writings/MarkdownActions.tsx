@@ -63,7 +63,7 @@ const MarkdownActions = ({ slug, markdown }: { slug: string; markdown: string })
       <button
         type="button"
         onClick={copy}
-        className="flex h-6 cursor-pointer items-center gap-x-1 rounded-full px-2 transition-colors hover:bg-background hover:text-foreground"
+        className="flex h-6 cursor-pointer items-center gap-x-1 rounded-full px-2 press hover:bg-background hover:text-foreground"
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
@@ -85,7 +85,7 @@ const MarkdownActions = ({ slug, markdown }: { slug: string; markdown: string })
         aria-label="More Markdown options"
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex size-6 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-background hover:text-foreground"
+        className="press flex size-6 cursor-pointer items-center justify-center rounded-full hover:bg-background hover:text-foreground"
       >
         <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="flex">
           <Chevron />

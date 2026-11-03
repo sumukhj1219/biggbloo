@@ -78,7 +78,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Navbar />
           </Reveal>
           {children}
-          <Footer />
+          <Reveal index={7}>
+            <Footer />
+          </Reveal>
           <ScrollFade />
           <ClickSounds />
         </SmoothScroll>

@@ -35,7 +35,7 @@ const CodeBlock = ({ children, ...props }: React.ComponentProps<"pre">) => {
           type="button"
           onClick={copy}
           aria-label={copied ? "Copied" : "Copy code"}
-          className="absolute top-2 right-2 flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-neutral-200/60 hover:text-foreground"
+          className="absolute top-2 right-2 flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground/50 press hover:bg-neutral-200/60 hover:text-foreground"
         >
           <AnimatePresence mode="wait" initial={false}>
             <motion.span

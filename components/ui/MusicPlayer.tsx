@@ -112,7 +112,7 @@ const Disc = ({ track }: { track: NowPlayingTrack | null }) => {
             onClick={toggle}
             aria-label={isPlaying ? "Pause preview" : "Play preview"}
             className={cn(
-              "absolute bottom-0.5 left-1/2 z-30 flex size-3.5 -translate-x-1/2 cursor-pointer items-center justify-center rounded-full bg-muted-foreground text-background transition-opacity",
+              "absolute bottom-0.5 left-1/2 z-30 flex size-3.5 -translate-x-1/2 cursor-pointer items-center justify-center rounded-full bg-muted-foreground text-background press",
               "opacity-0 group-hover:opacity-100"
             )}
           >

@@ -77,7 +77,7 @@ export default async function WritingPage(
         <Reveal index={1}>
           <Link
               href="/writings"
-            className="text-sm text-muted-foreground/60 transition-colors hover:text-foreground"
+            className="press inline-block text-sm text-muted-foreground/60 hover:text-foreground"
           >
             ← All blogs
           </Link>

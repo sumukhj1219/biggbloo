@@ -44,7 +44,7 @@ const Navbar = () => {
   }, [magic]);
 
   return (
-    <nav aria-label="Main" className="mb-8 sm:mb-10">
+    <nav aria-label="Main" className="mb-24 sm:mb-30">
       <div className="flex items-center justify-between">
         <ul className="isolate flex flex-wrap items-center gap-x-5 gap-y-1 text-sm sm:text-lg">
           {links.map(({ label, href, bg, fill }) => {
@@ -59,7 +59,7 @@ const Navbar = () => {
                   animate="rest"
                   whileHover="hover"
                   className={cn(
-                    "relative flex items-stretch transition-colors hover:text-foreground",
+                    "press relative flex items-stretch hover:text-foreground",
                     isActive ? "text-foreground" : "text-muted-foreground/60",
                   )}
                 >
@@ -84,7 +84,7 @@ const Navbar = () => {
           initial="rest"
           animate="rest"
           whileHover="hover"
-          className="relative isolate flex cursor-pointer items-stretch text-sm text-muted-foreground/60 transition-colors hover:text-foreground sm:text-lg"
+          className="press relative isolate flex cursor-pointer items-stretch text-sm text-muted-foreground/60 hover:text-foreground sm:text-lg"
         >
           <span
             aria-hidden="true"
@@ -118,7 +118,7 @@ const Navbar = () => {
                     onClick={() => setClosing(true)}
                     disabled={closing}
                     aria-label="Close 3D view"
-                    className="pointer-events-auto cursor-pointer px-2 py-1 text-muted-foreground transition-colors hover:text-foreground"
+                    className="press pointer-events-auto cursor-pointer px-2 py-1 text-muted-foreground hover:text-foreground"
                   >
                     Close
                   </button>
@@ -128,7 +128,7 @@ const Navbar = () => {
                     aria-pressed={!muted}
                     aria-label={muted ? "Turn sound on" : "Turn sound off"}
                     className={cn(
-                      "pointer-events-auto cursor-pointer px-2 py-1 text-muted-foreground transition-colors hover:text-foreground",
+                      "press pointer-events-auto cursor-pointer px-2 py-1 text-muted-foreground hover:text-foreground",
                       muted && "line-through decoration-2",
                     )}
                   >

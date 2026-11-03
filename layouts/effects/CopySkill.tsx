@@ -32,7 +32,7 @@ const CopySkill = ({ skill }: { skill: string }) => {
       <button
         type="button"
         onClick={copy}
-        className="flex h-6 cursor-pointer items-center gap-x-1 rounded-full px-2 transition-colors hover:bg-background hover:text-foreground"
+        className="flex h-6 cursor-pointer items-center gap-x-1 rounded-full px-2 press hover:bg-background hover:text-foreground"
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.span

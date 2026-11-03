@@ -100,7 +100,7 @@ const SelectField = ({ label, options, value, onChange }: { label: string; optio
             role="radio"
             aria-checked={value === option}
             onClick={() => onChange(option)}
-            className="relative h-full cursor-pointer rounded-md px-2.5 text-muted-foreground transition-colors aria-checked:text-foreground"
+            className="press relative h-full cursor-pointer rounded-md px-2.5 text-muted-foreground aria-checked:text-foreground"
           >
             {value === option && (
               <motion.span
@@ -123,7 +123,7 @@ const Toggle = ({ label, value, onChange }: { label: string; value: boolean; onC
     role="switch"
     aria-checked={value}
     onClick={() => onChange(!value)}
-    className={cn(FIELD, "w-full cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-neutral-300")}
+    className={cn(FIELD, "press w-full cursor-pointer outline-none [--press:0.98] focus-visible:ring-2 focus-visible:ring-neutral-300")}
   >
     <span className={LABEL}>{label}</span>
     <span

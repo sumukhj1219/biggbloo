@@ -944,7 +944,7 @@ const FoosballGame = forwardRef<HTMLDivElement>((_props, ref) => {
           {!started || finished ? (
             <button
               onClick={handleReady}
-              className={`${anton.className} relative z-10 flex origin-top scale-75 items-center px-5 text-sm uppercase tracking-wide text-black transition-opacity hover:opacity-90 sm:scale-100 sm:text-lg`}
+              className={`${anton.className} relative z-10 flex origin-top scale-75 items-center px-5 text-sm uppercase tracking-wide text-black press hover:opacity-90 sm:scale-100 sm:text-lg`}
               style={{
                 height: SCOREBOARD_HEIGHT,
                 backgroundColor: "#2ecc16",
