@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import Link from "next/link";
-import { motion, useMotionValueEvent, useScroll, useTransform } from "motion/react";
-import { useLenis } from "lenis/react";
 import { EFFECTS, effectHref, effectName, effectVideo } from "@/lib/effects";
 
-// Moods is a horizontal track that pins in the middle of the screen: scrolling
-// down through the section slides it sideways (one pixel of scroll moves it one
-// pixel), and the arrow buttons step through it by scrolling the page for you.
-// The section is only as tall as the track plus that sideways distance, so it
-// adds no empty space above or below.
+// Moods is a horizontal strip that scrolls on its own: swipe, trackpad or the
+// arrow buttons move it sideways, while vertical scrolling passes straight
+// through so the page never gets stuck on it. Cards snap to the left gutter.
 
-const MoodVideo = ({ slug, width, height }: (typeof EFFECTS)[number]) => {
+type MoodVideoProps = (typeof EFFECTS)[number] & { root: RefObject<HTMLDivElement | null> };
+
+const MoodVideo = ({ slug, width, height, root }: MoodVideoProps) => {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -23,14 +21,15 @@ const MoodVideo = ({ slug, width, height }: (typeof EFFECTS)[number]) => {
         if (entry.isIntersecting) video.play().catch(() => undefined);
         else video.pause();
       },
-      { rootMargin: "0px 300px" },
+      // Observed against the strip, so cards scrolled out sideways pause too.
+      { root: root.current, rootMargin: "0px 300px" },
     );
     observer.observe(video);
     return () => observer.disconnect();
-  }, []);
+  }, [root]);
 
   return (
-    <Link href={effectHref(slug)} className="press group flex shrink-0 flex-col gap-y-2 [--press:0.985]">
+    <Link href={effectHref(slug)} className="press group flex shrink-0 snap-start flex-col gap-y-2 [--press:0.985]">
       <span className="text-xs text-muted-foreground transition-colors group-hover:text-foreground sm:text-sm">
         {effectName(slug)}
       </span>
@@ -44,8 +43,9 @@ const MoodVideo = ({ slug, width, height }: (typeof EFFECTS)[number]) => {
         playsInline
         preload="none"
         aria-hidden="true"
-        style={{ aspectRatio: `${width} / ${height}` }}
-        className="block h-[min(52svh,24rem)] w-auto max-w-none rounded-sm"
+        // Capped by height, and by width so a card never outgrows the screen (2rem = mobile gutters).
+        style={{ aspectRatio: `${width} / ${height}`, height: `min(52svh, 24rem, calc((100vw - 2rem) * ${height / width}))` }}
+        className="block w-auto max-w-none rounded-sm"
       />
     </Link>
   );
@@ -60,84 +60,60 @@ const Arrow = ({ flip }: { flip?: boolean }) => (
 const arrowButton =
   "press flex size-8 cursor-pointer items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground disabled:cursor-default disabled:opacity-40 disabled:hover:text-muted-foreground";
 
-// Lines the track up with the page column (max-w-2xl, px-4 / sm:px-6).
+// Lines the strip up with the page column (max-w-2xl, px-4 / sm:px-6); the
+// scroll padding makes cards snap to that same line.
 const GUTTER = "px-4 sm:px-[max(1.5rem,calc((100vw-42rem)/2+1.5rem))]";
+const SNAP_GUTTER = "scroll-pl-4 sm:scroll-pl-[max(1.5rem,calc((100vw-42rem)/2+1.5rem))]";
 
 const MoodBoard = () => {
-  const sectionRef = useRef<HTMLElement>(null);
-  const pinRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  // start: page scroll where pinning begins; top: sticky offset that centres the track.
-  const [geo, setGeo] = useState({ start: 0, distance: 0, height: 0, top: 0 });
   const [edge, setEdge] = useState<"start" | "middle" | "end">("start");
-  const lenis = useLenis();
-  const { scrollY } = useScroll();
 
-  const offset = (y: number) => Math.min(Math.max(y - geo.start, 0), geo.distance);
-  const x = useTransform(scrollY, (y) => -offset(y));
-
-  useMotionValueEvent(scrollY, "change", (y) => {
-    const o = offset(y);
-    setEdge(o <= 1 ? "start" : o >= geo.distance - 1 ? "end" : "middle");
-  });
-
-  useLayoutEffect(() => {
-    const section = sectionRef.current;
-    const pin = pinRef.current;
+  useEffect(() => {
     const track = trackRef.current;
-    if (!section || !pin || !track) return;
-    const measure = () => {
-      const height = pin.offsetHeight;
-      const top = Math.max((window.innerHeight - height) / 2, 0);
-      setGeo({
-        start: section.getBoundingClientRect().top + window.scrollY - top,
-        distance: Math.max(track.scrollWidth - pin.clientWidth, 0),
-        height,
-        top,
-      });
+    if (!track) return;
+    const update = () => {
+      const max = track.scrollWidth - track.clientWidth;
+      setEdge(track.scrollLeft <= 1 ? "start" : track.scrollLeft >= max - 1 ? "end" : "middle");
     };
-    // The body is observed too: anything above changing height moves the start.
-    const observer = new ResizeObserver(measure);
-    [track, pin, document.body].forEach((el) => observer.observe(el));
-    window.addEventListener("resize", measure);
-    measure();
+    const observer = new ResizeObserver(update);
+    observer.observe(track);
+    track.addEventListener("scroll", update, { passive: true });
+    update();
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", measure);
+      track.removeEventListener("scroll", update);
     };
   }, []);
 
+  // Steps card by card: the next (or previous) card lands on the left gutter.
   const step = (dir: 1 | -1) => {
-    const pin = pinRef.current;
-    if (!pin) return;
-    const target = geo.start + offset(window.scrollY + dir * pin.clientWidth * 0.6);
-    if (lenis) lenis.scrollTo(target, { duration: 0.9 });
-    else window.scrollTo({ top: target, behavior: "smooth" });
+    const track = trackRef.current;
+    if (!track) return;
+    const pad = parseFloat(getComputedStyle(track).paddingLeft);
+    const stops = [...track.children].map((card) => (card as HTMLElement).offsetLeft - pad);
+    const now = track.scrollLeft;
+    const next = dir === 1 ? stops.find((x) => x > now + 1) : stops.findLast((x) => x < now - 1);
+    track.scrollTo({ left: next ?? (dir === 1 ? track.scrollWidth : 0), behavior: "smooth" });
   };
 
   return (
-    <section
-      ref={sectionRef}
-      id="moods"
-      aria-label="Moods"
-      className="relative left-1/2 w-screen -translate-x-1/2"
-      // Lands /#moods with the track already centred.
-      style={{ height: geo.height + geo.distance || undefined, scrollMarginTop: geo.top }}
-    >
-      <div ref={pinRef} className="sticky flex flex-col gap-y-3 overflow-hidden sm:gap-y-4" style={{ top: geo.top }}>
-        <div className={`flex justify-end gap-x-2 ${GUTTER}`}>
-          <button type="button" onClick={() => step(-1)} disabled={edge === "start"} aria-label="Previous moods" className={arrowButton}>
-            <Arrow flip />
-          </button>
-          <button type="button" onClick={() => step(1)} disabled={edge === "end"} aria-label="Next moods" className={arrowButton}>
-            <Arrow />
-          </button>
-        </div>
-        <motion.div ref={trackRef} style={{ x }} className={`flex w-max items-end gap-x-4 sm:gap-x-6 ${GUTTER}`}>
-          {EFFECTS.map((effect) => (
-            <MoodVideo key={effect.slug} {...effect} />
-          ))}
-        </motion.div>
+    <section id="moods" aria-label="Moods" className="relative left-1/2 flex w-screen -translate-x-1/2 scroll-mt-16 flex-col gap-y-3 sm:gap-y-4">
+      <div className={`flex justify-end gap-x-2 ${GUTTER}`}>
+        <button type="button" onClick={() => step(-1)} disabled={edge === "start"} aria-label="Previous moods" className={arrowButton}>
+          <Arrow flip />
+        </button>
+        <button type="button" onClick={() => step(1)} disabled={edge === "end"} aria-label="Next moods" className={arrowButton}>
+          <Arrow />
+        </button>
+      </div>
+      <div
+        ref={trackRef}
+        className={`relative flex snap-x snap-mandatory items-center gap-x-4 overflow-x-auto overscroll-x-contain [scrollbar-width:none] sm:gap-x-6 [&::-webkit-scrollbar]:hidden ${GUTTER} ${SNAP_GUTTER}`}
+      >
+        {EFFECTS.map((effect) => (
+          <MoodVideo key={effect.slug} {...effect} root={trackRef} />
+        ))}
       </div>
     </section>
   );

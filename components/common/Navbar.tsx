@@ -55,16 +55,16 @@ const Navbar = () => {
                 <MotionLink
                   href={href}
                   aria-current={isActive ? "page" : undefined}
-                  // The current page keeps its frame, like a selected layer.
                   initial="rest"
-                  animate={isActive ? "hover" : "rest"}
+                  animate="rest"
                   whileHover="hover"
                   className={cn(
                     "press relative block px-2 py-1 hover:text-foreground",
                     isActive ? "text-foreground" : "text-muted-foreground/60",
                   )}
                 >
-                  <SelectFrame />
+                  {/* The current page's frame glides to the new link on navigation. */}
+                  <SelectFrame layoutId={isActive ? "nav-selection" : undefined} />
                   {label}
                 </MotionLink>
               </li>
