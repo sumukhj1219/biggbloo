@@ -8,6 +8,9 @@ import { EFFECTS, effectHref, effectName, effectVideo } from "@/lib/effects";
 // arrow buttons move it sideways, while vertical scrolling passes straight
 // through so the page never gets stuck on it. Cards snap to the left gutter.
 
+// EFFECTS is in the order they were added; the board shows the newest first.
+const LATEST_FIRST = [...EFFECTS].reverse();
+
 type MoodVideoProps = (typeof EFFECTS)[number] & { root: RefObject<HTMLDivElement | null> };
 
 const MoodVideo = ({ slug, width, height, root }: MoodVideoProps) => {
@@ -111,7 +114,7 @@ const MoodBoard = () => {
         ref={trackRef}
         className={`relative flex snap-x snap-mandatory items-center gap-x-4 overflow-x-auto overscroll-x-contain [scrollbar-width:none] sm:gap-x-6 [&::-webkit-scrollbar]:hidden ${GUTTER} ${SNAP_GUTTER}`}
       >
-        {EFFECTS.map((effect) => (
+        {LATEST_FIRST.map((effect) => (
           <MoodVideo key={effect.slug} {...effect} root={trackRef} />
         ))}
       </div>
