@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
+import { useState, type ReactNode, type RefObject } from "react";
 import dynamic from "next/dynamic";
 import type { Control, Values } from "@/components/ui/Controls";
 import type { EffectSlug } from "@/lib/effects";
@@ -19,6 +19,13 @@ const MetallicGlow = dynamic(() => import("@/text-effects/metallic-glow/assets/M
 const PaintDrip = dynamic(() => import("@/text-effects/paint-drip/assets/PaintDrip").then((m) => m.PaintDrip));
 const RumbleFlash = dynamic(() => import("@/text-effects/rumble-flash/assets/RumbleFlash").then((m) => m.RumbleFlash));
 const StitchedText = dynamic(() => import("@/text-effects/stitched-text/assets/StitchedText").then((m) => m.StitchedText));
+const HumansDoodle = dynamic(() => import("@/text-effects/humans-doodle/assets/HumansDoodle").then((m) => m.HumansDoodle));
+const CountDial = dynamic(() => import("@/text-effects/humans-doodle/assets/HumansDoodle").then((m) => m.CountDial));
+// Client-only: it builds its lens map from `document`, so server HTML would differ.
+const MagnifyGlass = dynamic(() => import("@/text-effects/magnify-link/assets/MagnifyGlass").then((m) => m.MagnifyGlass), {
+  ssr: false,
+});
+const TextTear = dynamic(() => import("@/text-effects/text-tear/assets/TextTear").then((m) => m.TextTear));
 
 type Playground = {
   // `background` and `color` controls style the preview stage itself.
@@ -48,6 +55,19 @@ const DRIP_RAMPS: Record<string, string[]> = {
   ink: ["#2a2a2a", "#4a4a4a", "#6a6a6a", "#7a7a7a", "#5c5c5c", "#3a3a3a", "#202020", "#101010"],
   sunset: ["#fff3a0", "#ffcc1a", "#ff8c00", "#ff4500", "#e0112b", "#8a1a7a", "#3a1f8a", "#1a1660"],
   candy: ["#ffd1f0", "#ff9ad8", "#ff6ec7", "#b14dff", "#4dd2ff", "#2a6bff"],
+};
+
+// The crowd keeps its own count so the dial under it can drive it live;
+// the "Start count" control seeds it (the stage remounts on reset/replay).
+type CrowdProps = { start: number; speed: number; roughness: number; ink: string; shapeSeed: number; accent: string };
+const Crowd = ({ start, accent, ...props }: CrowdProps) => {
+  const [count, setCount] = useState(start);
+  return (
+    <div className="flex size-full flex-col items-center gap-y-3 px-4 pt-12 pb-4">
+      <HumansDoodle count={count} {...props} className="min-h-0 w-full flex-1" />
+      <CountDial value={count} onChange={setCount} max={5000} accent={accent} />
+    </div>
+  );
 };
 
 const n = (v: Values, key: string) => v[key] as number;
@@ -387,5 +407,97 @@ export const PLAYGROUNDS: Record<EffectSlug, Playground> = {
         className="text-6xl font-black sm:text-8xl"
       />
     ),
+  },
+  "humans-doodle": {
+    controls: [
+      range("count", "Start count", 24, 1, 500, 1),
+      color("ink", "Ink", "#1b1a1a"),
+      color("accent", "Dial", "#6a5af9"),
+      color("background", "Background", "#f7f4ee"),
+      range("speed", "Speed", 1, 0, 3, 0.1),
+      range("roughness", "Roughness", 1, 0, 2, 0.05),
+      range("shapeSeed", "Crowd shape", 1, 1, 20, 1),
+    ],
+    render: (v) => (
+      <Crowd
+        start={n(v, "count")}
+        ink={s(v, "ink")}
+        accent={s(v, "accent")}
+        speed={n(v, "speed")}
+        roughness={n(v, "roughness")}
+        shapeSeed={n(v, "shapeSeed")}
+      />
+    ),
+  },
+  "magnify-link": {
+    controls: [
+      select("show", "Show", ["links", "always"], "links"),
+      color("color", "Text", "#6b6b6b"),
+      color("background", "Background", "#ffffff"),
+      color("metal", "Metal", "#d5d8de"),
+      color("grip", "Grip", "#16161a"),
+      toggle("ornate", "Royal", false),
+      range("size", "Lens size", 170, 100, 260, 5),
+      range("zoom", "Zoom", 2, 1, 4, 0.1),
+      range("previewZoom", "Preview zoom", 3, 1, 6, 0.1),
+      range("distort", "Bulge", 0.25, 0, 0.5, 0.01),
+      range("aberration", "Fringe", 0.025, 0, 0.2, 0.005),
+      range("edgeBlur", "Edge blur", 12, 0, 30, 1),
+    ],
+    // Live previews only work for sites that allow framing (see SKILL.md).
+    render: (v) => (
+      <MagnifyGlass
+        key={`${b(v, "ornate")}`}
+        show={s(v, "show") as "links" | "always"}
+        metal={s(v, "metal")}
+        grip={s(v, "grip")}
+        ornate={b(v, "ornate")}
+        size={n(v, "size")}
+        zoom={n(v, "zoom")}
+        previewZoom={n(v, "previewZoom")}
+        distort={n(v, "distort")}
+        aberration={n(v, "aberration")}
+        edgeBlur={n(v, "edgeBlur")}
+        className="max-w-xl p-8 text-lg leading-relaxed sm:text-xl"
+      >
+        <p>
+          Good interfaces are built from small pieces. Read the <a href="https://react.dev">React docs</a> to learn
+          components, reach for <a href="https://motion.dev">Motion</a> when things should move, and start the project
+          with <a href="https://vite.dev">Vite</a>. Curious where the magnifying glass came from? <a href="https://en.wikipedia.org/wiki/Magnifying_glass">Wikipedia</a> has the story.
+        </p>
+      </MagnifyGlass>
+    ),
+  },
+  "text-tear": {
+    controls: [
+      text("words", "Words (comma separated)", "MISTAKES, LESSONS, PROGRESS"),
+      color("hot", "Tear core", "#ff3d7f"),
+      color("warm", "Tear streaks", "#ffb347"),
+      color("cool", "Tear rim", "#3fe0f0"),
+      color("background", "Background", "#151517"),
+      range("hold", "Hold", 0.1, 0, 2, 0.05),
+      range("duration", "Duration", 1.8, 0.6, 4, 0.1),
+      range("aspect", "Aspect", 1.05, 0.6, 2, 0.05),
+      range("tilt", "Tilt", 18, -30, 30, 1),
+      range("echoes", "Echoes", 3, 0, 6, 1),
+    ],
+    render: (v) => {
+      const words = s(v, "words").split(",").map((w) => w.trim()).filter(Boolean);
+      return (
+        <TextTear
+          key={words.join()}
+          words={words.length ? words : ["TEAR"]}
+          tearColors={[s(v, "hot"), s(v, "warm"), s(v, "cool")]}
+          hold={n(v, "hold")}
+          duration={n(v, "duration")}
+          aspect={n(v, "aspect")}
+          tilt={n(v, "tilt")}
+          echoes={n(v, "echoes")}
+          // The component sets width 100% inline, so the size goes in `style`.
+          style={{ width: "min(70%, 20rem)" }}
+          className={ANTON}
+        />
+      );
+    },
   },
 };
